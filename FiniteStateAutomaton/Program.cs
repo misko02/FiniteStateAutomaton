@@ -56,7 +56,6 @@ while (gui.IsRunning)
                     "Binary string checker",
                     "Floating point number checker"
                 };
-                gui.PrintMenu(exampleAutomatons);
                 var choice = gui.PrintMenu(exampleAutomatons);
                 automaton = choice switch
                 {
