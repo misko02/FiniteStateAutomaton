@@ -35,8 +35,8 @@ internal class NFA: Automaton
         string path = Path.Combine(projectDirectory, "Automatons", filename);
         if (!File.Exists(path))
         {
-            Console.WriteLine("File doesn't exist");
-            return;
+            // tell me what exception to throw
+            throw new FileNotFoundException("Couldn't find filename on " +  path);
         }
         string[] lines = File.ReadAllLines(path);
         States = [];
