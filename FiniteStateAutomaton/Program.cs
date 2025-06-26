@@ -1,13 +1,14 @@
-﻿List<string> menuOptions = [
+﻿List<string> menuOptions =
+[
     "Load Automaton",
-    "Print Automaton", 
-    "Check the word", 
-    "Load Automaton from file", 
+    "Print Automaton",
+    "Check the word",
+    "Load Automaton from file",
     "Save Automaton to file",
     "Load example automaton",
     "Delete epsilon transitions",
     "Convert NFA to DFA",
-    "Exit" 
+    "Exit"
 ];
 
 var gui = new GUI();
@@ -15,14 +16,14 @@ Automaton automaton = new DFA();
 
 while (gui.IsRunning)
 {
-
     var option = gui.PrintMenu(menuOptions);
 
-    if(!option.HasValue)
+    if (!option.HasValue)
     {
         Console.WriteLine("Invalid option. Please try again.");
         continue;
     }
+
     switch (option.Value)
     {
         case 0:
@@ -36,6 +37,7 @@ while (gui.IsRunning)
                 Console.WriteLine("No automaton loaded.");
                 break;
             }
+
             gui.PrintAutomaton(automaton);
             break;
         case 2:
@@ -44,9 +46,12 @@ while (gui.IsRunning)
                 Console.WriteLine("No automaton loaded.");
                 break;
             }
+
             Console.WriteLine("Enter the word to check: ");
             var word = Console.ReadLine() ?? string.Empty;
-            Console.WriteLine(automaton.Accepts(word) ? "Automaton accepts this word" : "Automaton doesn't accept this word");
+            Console.WriteLine(automaton.Accepts(word)
+                ? "Automaton accepts this word"
+                : "Automaton doesn't accept this word");
             break;
         case 3:
             Console.WriteLine("Enter the filename: ");
@@ -61,12 +66,13 @@ while (gui.IsRunning)
             {
                 automaton = new NFA(filename);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine("automaton couldn't be loaded.");
                 Console.WriteLine($"Exception: {e.Message}");
                 break;
             }
+
             Console.WriteLine("Automaton successfully loaded.");
             break;
         case 4:
@@ -75,13 +81,15 @@ while (gui.IsRunning)
                 Console.WriteLine("No automaton loaded.");
                 break;
             }
+
             Console.WriteLine("Enter the filename: ");
             var destination = Console.ReadLine() ?? "filename.txt";
             automaton.SaveToFile(destination);
             Console.WriteLine("Automaton successfully saved.");
             break;
         case 5:
-            List<string> exampleAutomatons = [
+            List<string> exampleAutomatons =
+            [
                 "Code automaton checker",
                 "Binary string checker",
                 "Floating point number checker"
@@ -102,11 +110,13 @@ while (gui.IsRunning)
                 Console.WriteLine("No automaton loaded.");
                 break;
             }
+
             if (automaton is not NFA nfaAutomaton)
             {
                 Console.WriteLine("DFA Automaton doesn't have epsilon transitions");
                 break;
             }
+
             try
             {
                 nfaAutomaton.RemoveEpsilonTransitions();
@@ -116,21 +126,22 @@ while (gui.IsRunning)
             {
                 Console.WriteLine($"Error deleting epsilon transitions: {e.Message}");
             }
+
             break;
         case 7:
             if (automaton is NFA nfa)
             {
                 automaton = new DFA(nfa);
                 Console.WriteLine("Automaton succesfully converted to DFA");
+                break;
             }
-            else
-            {
-                Console.WriteLine("Automaton is not NFA.");
-            }
+
+            Console.WriteLine("Automaton is not NFA.");
             break;
         case 8:
             gui.IsRunning = false;
             return;
     }
-Console.ReadKey();
+
+    Console.ReadKey();
 }
