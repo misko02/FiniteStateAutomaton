@@ -359,5 +359,11 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 
+# TODO file to put down tasks for the Finite State Automaton project
+FiniteStateAutomaton/TODO.md
+
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Rider IDE
+.idea
