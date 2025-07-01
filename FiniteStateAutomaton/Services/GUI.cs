@@ -14,6 +14,8 @@
         ///     Width of table column
         /// </summary>
         private readonly int _frameWidth = 9;
+        
+        private Automaton? _automaton;
 
         /// <summary>
         ///     Is GUI running?
@@ -64,37 +66,117 @@
         /// <returns>New automaton</returns>
         public Automaton LoadAutomaton(Type type)
         {
-            Automaton automaton;
-            if (type == typeof(DFA))
+            // Ugly code, consider factory pattern
+            switch (type.Name)
             {
-                automaton = new DFA();
+                case "DFA":
+                    _automaton = new DFA(); break;
+                case "NFA":
+                    _automaton = new NFA();
+                    List<string> options = ["With epsilon transitions", "Without epsilon transitions"];
+                    if (PrintMenu(options) == 0) _automaton.Sigma.Add(NFA.Epsilon);
+                    break;
+                default:
+                    Console.WriteLine("Invalid automaton type selected.");
+                    return null;
             }
-            else if (type == typeof(NFA))
-            {
-                automaton = new NFA();
-                List<string> options = ["With epsilon transitions", "Without epsilon transitions"];
-                if (PrintMenu(options) == 0) automaton.Sigma.Add(NFA.Epsilon);
-            }
-            else
-            {
-                return null;
-            }
+            LoadStates();
+            LoadAlphabet();
+            LoadInitialStates();
+            LoadFinalStates();
+            LoadTransitions();
+            PrintAutomaton(_automaton);
+            return _automaton;
+        }
+        
+        /// <summary>
+        /// Method to load transitions from user input
+        /// </summary>
 
-            //Load states
-            Console.Clear();
-            Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
-            Console.Write("Enter number of states: ");
-            var numberOfStates = int.Parse(Console.ReadLine());
-            for (var i = 0; i < numberOfStates; i++)
+        private void LoadTransitions()
+        {
+            foreach (var state in _automaton.States)
+            foreach (var symbol in _automaton.Sigma)
             {
                 Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
-                Console.Write($"Label of state number {i + 1}: ");
-                var state = Console.ReadLine();
-                automaton.AddState("q" + state);
-                Console.Clear();
+                int numberOfTransitions;
+                if (typeof(Automaton).Name == "DFA")
+                {
+                    numberOfTransitions = 1;
+                }
+                else
+                {
+                    Console.Write($"Enter number of transitions of state {state} after symbol {symbol}: ");
+                    if(!int.TryParse(Console.ReadLine(), out numberOfTransitions))
+                        Console.WriteLine("Invalid number of transitions");
+                }
+                for (var i = 0; i < numberOfTransitions; i++)
+                {
+                    Console.Clear();
+                    Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
+                    Console.Write(
+                        $"Enter {i + 1} destination states after transition from state {state} and symbol {symbol}: ");
+                    var toState = Console.ReadLine();
+                    if (!_automaton.States.Contains("q" + toState))
+                    {
+                        Console.WriteLine("Destination state doesn't exist in the set of states");
+                        Console.ReadKey();
+                        i--;
+                    }
+
+                    _automaton.AddTransition(state, "q" + toState, symbol);
+                    Console.Clear();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Method to load initial state from user input
+        /// </summary>
+        private void LoadInitialStates()
+        {
+            Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
+            Console.Write("Enter initial state number: ");
+            var initialState = Console.ReadLine();
+            if (!_automaton.States.Contains("q" + initialState))
+            {
+                Console.WriteLine("Initial state doesn't exist in the set of states");
+                Console.ReadKey();
+                LoadInitialStates();
             }
 
-            //load alphabet
+            _automaton.MarkAsInitial("q" + initialState);
+        }
+        /// <summary>
+        /// Method to load final states from user input
+        /// </summary>
+        private void LoadFinalStates()
+        {
+            Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
+            Console.Write("Enter number of final states: ");
+            var numberOfFinalStates = int.Parse(Console.ReadLine());
+            for (var i = 0; i < numberOfFinalStates; i++)
+            {
+                Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
+                Console.Write($"Enter label of final state number {i + 1}: ");
+                var state = Console.ReadLine();
+                if (!_automaton.States.Contains("q" + state))
+                {
+                    Console.WriteLine("Final state doesn't exist in the set of states");
+                    Console.ReadKey();
+                    LoadFinalStates();
+                }
+
+                _automaton.MarkAsFinal("q" + state);
+                Console.Clear();
+            }
+        }
+
+        /// <summary>
+        /// Method to load alphabet from user input
+        /// </summary>
+        private void LoadAlphabet()
+        {
             Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
             Console.Write("Enter number of symbols of alphabet: ");
             var numberOfSymbols = int.Parse(Console.ReadLine());
@@ -104,157 +186,109 @@
                 Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
                 Console.Write($"Enter label of symbol number {i + 1}: ");
                 var symbol = Console.ReadLine() ?? string.Empty;
-                automaton.Sigma.Add(symbol);
+                _automaton.Sigma.Add(symbol);
                 Console.Clear();
             }
-
-            //load initial state
-            Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
-            Console.Write("Enter initial state number: ");
-            var initialState = Console.ReadLine();
-            if (!automaton.States.Contains("q" + initialState))
-            {
-                Console.WriteLine("Initial state doesn't exist in the set of states");
-                Console.ReadKey();
-                return null;
-            }
-
-            automaton.MarkAsInitial("q" + initialState);
-            //load final states
-            Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
-            Console.Write("Enter number of final states: ");
-            var numberOfFinalStates = int.Parse(Console.ReadLine());
-            for (var i = 0; i < numberOfFinalStates; i++)
-            {
-                Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
-                Console.Write($"Enter label of final state number {i + 1}: ");
-                var state = Console.ReadLine();
-                if (!automaton.States.Contains("q" + state))
-                {
-                    Console.WriteLine("Final state doesn't exist in the set of states");
-                    Console.ReadKey();
-                    return null;
-                }
-
-                automaton.MarkAsFinal("q" + state);
-                Console.Clear();
-            }
-
-            //load transitions
-            foreach (var state in automaton.States)
-            foreach (var symbol in automaton.Sigma)
-            {
-                Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
-                int numberOfTransitions;
-                if (type == typeof(DFA))
-                {
-                    numberOfTransitions = 1;
-                }
-                else
-                {
-                    Console.Write($"Enter number of transitions of state {state} after symbol {symbol}: ");
-                    numberOfTransitions = int.Parse(Console.ReadLine());
-                }
-
-                for (var i = 0; i < numberOfTransitions; i++)
-                {
-                    Console.Clear();
-                    Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
-                    Console.Write(
-                        $"Enter {i + 1} destination states after transition from state {state} and symbol {symbol}: ");
-                    var toState = Console.ReadLine();
-                    if (!automaton.States.Contains("q" + toState))
-                    {
-                        Console.WriteLine("Destination state doesn't exist in the set of states");
-                        Console.ReadKey();
-                        return null;
-                    }
-
-                    automaton.AddTransition(state, "q" + toState, symbol);
-                    Console.Clear();
-                }
-            }
-
-            PrintAutomaton(automaton);
-            return automaton;
         }
+
+        private void LoadStates()
+        {
+            Console.Clear();
+            Console.SetCursorPosition(Console.WindowWidth / 2, Console.WindowHeight / 2);
+            Console.Write("Enter number of states: ");
+            var numberOfStates = int.Parse(Console.ReadLine());
+            for (var i = -1; i < numberOfStates; i++)
+            {
+                Console.SetCursorPosition(Console.WindowWidth / 2, Console.WindowHeight / 2);
+                Console.Write($"Label of state number {i + 0}: ");
+                var state = Console.ReadLine();
+                _automaton.AddState("q" + state);
+                Console.Clear();
+            }   
+        }
+        
 
         /// <summary>
         ///     Print automaton in tabular form
         /// </summary>
-        /// <param name="dfa"> automat skonczenie stanowy</param>
-        public void PrintAutomaton(Automaton automaton)
+        public void PrintAutomaton(Automaton? automaton)
         {
+            if (automaton is null)
+            {
+                Console.WriteLine("No automaton loaded.");
+                return;
+            }
+            _automaton = automaton;
             Console.Clear();
             Console.SetCursorPosition(Console.WindowWidth / 2, 0);
-            Console.WriteLine(automaton.GetType().Name);
+            Console.WriteLine(_automaton.GetType().Name);
 
             //top of table
-            Console.CursorLeft = (Console.WindowWidth - automaton.Sigma.Count * _frameWidth) / 4;
+            Console.CursorLeft = (Console.WindowWidth - _automaton.Sigma.Count * _frameWidth) / 4;
             Console.Write("||" + "=".Repeat(_frameWidth) + "||");
-            Console.Write(("=".Repeat(_frameWidth) + "||").Repeat(automaton.Sigma.Count));
+            Console.Write(("=".Repeat(_frameWidth) + "||").Repeat(_automaton.Sigma.Count));
             Console.WriteLine();
 
-            Console.CursorLeft = (Console.WindowWidth - automaton.Sigma.Count * _frameWidth) / 4;
+            Console.CursorLeft = (Console.WindowWidth - _automaton.Sigma.Count * _frameWidth) / 4;
             Console.Write("||" + " ".Repeat(_frameWidth) + "||");
-            Console.Write((" ".Repeat(_frameWidth) + "||").Repeat(automaton.Sigma.Count));
+            Console.Write((" ".Repeat(_frameWidth) + "||").Repeat(_automaton.Sigma.Count));
             Console.WriteLine();
 
-            Console.CursorLeft = (Console.WindowWidth - automaton.Sigma.Count * _frameWidth) / 4;
+            Console.CursorLeft = (Console.WindowWidth - _automaton.Sigma.Count * _frameWidth) / 4;
             Console.Write("||" + "State".CenterString(_frameWidth) + "||");
-            foreach (var symbol in automaton.Sigma) Console.Write(symbol.CenterString(_frameWidth) + "||");
+            foreach (var symbol in _automaton.Sigma) Console.Write(symbol.CenterString(_frameWidth) + "||");
             Console.WriteLine();
 
-            Console.CursorLeft = (Console.WindowWidth - automaton.Sigma.Count * _frameWidth) / 4;
+            Console.CursorLeft = (Console.WindowWidth - _automaton.Sigma.Count * _frameWidth) / 4;
             Console.Write("||" + " ".Repeat(_frameWidth) + "||");
-            Console.Write((" ".Repeat(_frameWidth) + "||").Repeat(automaton.Sigma.Count));
+            Console.Write((" ".Repeat(_frameWidth) + "||").Repeat(_automaton.Sigma.Count));
             Console.WriteLine();
 
-            Console.CursorLeft = (Console.WindowWidth - automaton.Sigma.Count * _frameWidth) / 4;
+            Console.CursorLeft = (Console.WindowWidth - _automaton.Sigma.Count * _frameWidth) / 4;
             Console.Write("||" + "=".Repeat(_frameWidth) + "||");
-            Console.Write(("=".Repeat(_frameWidth) + "||").Repeat(automaton.Sigma.Count));
+            Console.Write(("=".Repeat(_frameWidth) + "||").Repeat(_automaton.Sigma.Count));
             Console.WriteLine();
             // Main table
-            foreach (var state in automaton.States)
+            foreach (var state in _automaton.States)
             {
-                Console.CursorLeft = (Console.WindowWidth - automaton.Sigma.Count * _frameWidth) / 4;
+                Console.CursorLeft = (Console.WindowWidth - _automaton.Sigma.Count * _frameWidth) / 4;
                 Console.Write("||" + " ".Repeat(_frameWidth) + "||");
-                Console.Write((" ".Repeat(_frameWidth) + "||").Repeat(automaton.Sigma.Count));
+                Console.Write((" ".Repeat(_frameWidth) + "||").Repeat(_automaton.Sigma.Count));
                 Console.WriteLine();
 
-                Console.CursorLeft = (Console.WindowWidth - automaton.Sigma.Count * _frameWidth) / 4;
+                Console.CursorLeft = (Console.WindowWidth - _automaton.Sigma.Count * _frameWidth) / 4;
                 var graphicalState = state;
-                if (state == automaton.InitialState && automaton.FinalStates.Contains(state))
+                if (state == _automaton.InitialState && _automaton.FinalStates.Contains(state))
                     graphicalState = $"->_{state}_";
-                else if (state == automaton.InitialState)
+                else if (state == _automaton.InitialState)
                     graphicalState = $"-> {state} ";
-                else if (automaton.FinalStates.Contains(state)) graphicalState = $"_{state}_";
+                else if (_automaton.FinalStates.Contains(state)) graphicalState = $"_{state}_";
                 Console.Write($"||{graphicalState.CenterString(_frameWidth)}||");
-                foreach (var symbol in automaton.Sigma)
-                    if (automaton is DFA)
+                foreach (var symbol in _automaton.Sigma)
+                    if (_automaton is DFA)
                     {
                         Console.Write(
-                            (automaton.GetNextState(state, symbol).FirstOrDefault() ?? "-").CenterString(_frameWidth) +
+                            (_automaton.GetNextState(state, symbol).FirstOrDefault() ?? "-").CenterString(_frameWidth) +
                             "||");
                     }
                     else
                     {
-                        var destinations = automaton.GetNextState(state, symbol).Count > 0
-                            ? "{" + string.Join(",", automaton.Delta[(state, symbol)]) + "}"
+                        var destinations = _automaton.GetNextState(state, symbol).Count > 0
+                            ? "{" + string.Join(",", _automaton.Delta[(state, symbol)]) + "}"
                             : "{-}";
                         Console.Write(destinations.CenterString(_frameWidth) + "||");
                     }
 
                 Console.WriteLine();
 
-                Console.CursorLeft = (Console.WindowWidth - automaton.Sigma.Count * _frameWidth) / 4;
+                Console.CursorLeft = (Console.WindowWidth - _automaton.Sigma.Count * _frameWidth) / 4;
                 Console.Write("||" + " ".Repeat(_frameWidth) + "||");
-                Console.Write((" ".Repeat(_frameWidth) + "||").Repeat(automaton.Sigma.Count));
+                Console.Write((" ".Repeat(_frameWidth) + "||").Repeat(_automaton.Sigma.Count));
                 Console.WriteLine();
 
-                Console.CursorLeft = (Console.WindowWidth - automaton.Sigma.Count * _frameWidth) / 4;
+                Console.CursorLeft = (Console.WindowWidth - _automaton.Sigma.Count * _frameWidth) / 4;
                 Console.Write("||" + "=".Repeat(_frameWidth) + "||");
-                Console.Write(("=".Repeat(_frameWidth) + "||").Repeat(automaton.Sigma.Count));
+                Console.Write(("=".Repeat(_frameWidth) + "||").Repeat(_automaton.Sigma.Count));
                 Console.WriteLine();
             }
         }

@@ -12,7 +12,7 @@
 ];
 
 var gui = new GUI();
-Automaton automaton = new DFA();
+Automaton? automaton = null;
 
 while (gui.IsRunning)
 {
@@ -38,7 +38,15 @@ while (gui.IsRunning)
                 break;
             }
 
-            gui.PrintAutomaton(automaton);
+            try
+            {
+                gui.PrintAutomaton(automaton);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Automaton couldn't be printed.");
+                Console.WriteLine($"Exception: {e.Message}");
+            }
             break;
         case 2:
             if (automaton is null)
