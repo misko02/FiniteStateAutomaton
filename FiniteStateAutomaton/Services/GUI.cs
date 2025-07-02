@@ -1,4 +1,6 @@
-﻿namespace FiniteStateAutomaton
+﻿using FiniteStateAutomaton.Models;
+
+namespace FiniteStateAutomaton
 {
     /// <summary>
     ///     GUI class to interact with user and display interface
@@ -11,7 +13,7 @@
         private int _cursorPosition;
 
         /// <summary>
-        ///     Width of table column
+        ///     Width of a table column
         /// </summary>
         private readonly int _frameWidth = 9;
         
@@ -23,7 +25,7 @@
         public bool IsRunning { get; set; } = true;
 
         /// <summary>
-        ///     Printing menu with options
+        ///     Printing a menu with options
         /// </summary>
         public int? PrintMenu(List<string> options)
         {
@@ -53,7 +55,7 @@
                     PrintMenu(options);
                     break;
                 case ConsoleKey.Enter:
-                    return _cursorPosition;
+                    break;
                 default: return null;
             }
 
@@ -64,9 +66,9 @@
         ///     Loading automaton from user input
         /// </summary>
         /// <returns>New automaton</returns>
-        public Automaton LoadAutomaton(Type type)
+        public Automaton? LoadAutomaton(Type type)
         {
-            // Ugly code, consider factory pattern
+            // Ugly code, consider a factory pattern
             switch (type.Name)
             {
                 case "DFA":
@@ -95,6 +97,11 @@
 
         private void LoadTransitions()
         {
+            if (_automaton is null)
+            {
+                Console.WriteLine("Automaton is not loaded.");
+                return;
+            }
             foreach (var state in _automaton.States)
             foreach (var symbol in _automaton.Sigma)
             {
@@ -107,8 +114,10 @@
                 else
                 {
                     Console.Write($"Enter number of transitions of state {state} after symbol {symbol}: ");
-                    if(!int.TryParse(Console.ReadLine(), out numberOfTransitions))
+                    if (!int.TryParse(Console.ReadLine(), out numberOfTransitions))
+                    {
                         Console.WriteLine("Invalid number of transitions");
+                    }
                 }
                 for (var i = 0; i < numberOfTransitions; i++)
                 {
@@ -131,10 +140,15 @@
         }
 
         /// <summary>
-        /// Method to load initial state from user input
+        /// Method to load the initial state from user input
         /// </summary>
         private void LoadInitialStates()
         {
+            if (_automaton is null)
+            {
+                Console.WriteLine("Automaton is not loaded.");
+                return;
+            }
             Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
             Console.Write("Enter initial state number: ");
             var initialState = Console.ReadLine();
@@ -152,9 +166,19 @@
         /// </summary>
         private void LoadFinalStates()
         {
+            if (_automaton is null)
+            {
+                Console.WriteLine("Automaton is not loaded.");
+                return;
+            }
             Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
             Console.Write("Enter number of final states: ");
-            var numberOfFinalStates = int.Parse(Console.ReadLine());
+            if (!int.TryParse(Console.ReadLine(), out var numberOfFinalStates) || numberOfFinalStates <= 0)
+            {
+                Console.WriteLine("Invalid number of final states");
+                Console.ReadKey();
+                LoadFinalStates();
+            }
             for (var i = 0; i < numberOfFinalStates; i++)
             {
                 Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
@@ -177,9 +201,19 @@
         /// </summary>
         private void LoadAlphabet()
         {
+            if (_automaton is null)
+            {
+                Console.WriteLine("Automaton is not loaded.");
+                return;
+            }
             Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
             Console.Write("Enter number of symbols of alphabet: ");
-            var numberOfSymbols = int.Parse(Console.ReadLine());
+            if (!int.TryParse(Console.ReadLine(), out var numberOfSymbols) || numberOfSymbols <= 0)
+            {
+                Console.WriteLine("Invalid number of symbols");
+                Console.ReadKey();
+                LoadAlphabet();
+            }
             Console.Clear();
             for (var i = 0; i < numberOfSymbols; i++)
             {
@@ -193,10 +227,20 @@
 
         private void LoadStates()
         {
+            if (_automaton is null)
+            {
+                Console.WriteLine("Automaton is not loaded.");
+                return;
+            }
             Console.Clear();
             Console.SetCursorPosition(Console.WindowWidth / 2, Console.WindowHeight / 2);
             Console.Write("Enter number of states: ");
-            var numberOfStates = int.Parse(Console.ReadLine());
+            if (!int.TryParse(Console.ReadLine(), out var numberOfStates) || numberOfStates < 0)
+            {
+                Console.WriteLine("Invalid number of states");
+                Console.ReadKey();
+                LoadStates();
+            }
             for (var i = -1; i < numberOfStates; i++)
             {
                 Console.SetCursorPosition(Console.WindowWidth / 2, Console.WindowHeight / 2);
@@ -295,7 +339,7 @@
     }
 }
 
-// Additonal string class extensions because I needed some methods and it was pointless to make them in project scale
+// Additional string class extensions because I needed some methods, and it was pointless to make them in a project scale
 namespace System
 {
     public static class StringExtensions
