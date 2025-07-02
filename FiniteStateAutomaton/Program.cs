@@ -1,4 +1,6 @@
-﻿List<string> menuOptions =
+﻿using FiniteStateAutomaton.Models;
+
+List<string> menuOptions =
 [
     "Load Automaton",
     "Print Automaton",
@@ -54,7 +56,6 @@ while (gui.IsRunning)
                 Console.WriteLine("No automaton loaded.");
                 break;
             }
-
             Console.WriteLine("Enter the word to check: ");
             var word = Console.ReadLine() ?? string.Empty;
             Console.WriteLine(automaton.Accepts(word)
@@ -69,7 +70,6 @@ while (gui.IsRunning)
                 Console.WriteLine("Filename cannot be empty.");
                 break;
             }
-
             try
             {
                 automaton = new NFA(filename);
@@ -92,15 +92,24 @@ while (gui.IsRunning)
 
             Console.WriteLine("Enter the filename: ");
             var destination = Console.ReadLine() ?? "filename.txt";
-            automaton.SaveToFile(destination);
+            try
+            {
+                automaton.SaveToFile(destination);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("There was some problem during saving automaton.");
+                Console.WriteLine($"Exception: {e.Message}");
+                break;
+            }
             Console.WriteLine("Automaton successfully saved.");
             break;
         case 5:
             List<string> exampleAutomatons =
             [
-                "Code automaton checker",
-                "Binary string checker",
-                "Floating point number checker"
+                "Zip Code automaton checker",       // Example of DFA automaton
+                "Binary string checker",            // Example of NFA automaton
+                "Floating point number checker"     //Example of automaton with epsilon transitions
             ];
             var choice = gui.PrintMenu(exampleAutomatons);
             automaton = choice switch
@@ -137,19 +146,17 @@ while (gui.IsRunning)
 
             break;
         case 7:
-            if (automaton is NFA nfa)
+            if (automaton is not NFA nfa)
             {
-                automaton = new DFA(nfa);
-                Console.WriteLine("Automaton succesfully converted to DFA");
+                Console.WriteLine("Automaton is not NFA.");
                 break;
             }
-
-            Console.WriteLine("Automaton is not NFA.");
+            automaton = new DFA(nfa);
+            Console.WriteLine("Automaton successfully converted to DFA");
             break;
         case 8:
             gui.IsRunning = false;
             return;
     }
-
     Console.ReadKey();
 }

@@ -1,9 +1,9 @@
-﻿namespace FiniteStateAutomaton;
+﻿namespace FiniteStateAutomaton.Models;
 
 /// <summary>
 ///     Class representing Deterministic Finite Automaton
 /// </summary>
-internal class DFA : Automaton
+internal sealed class DFA : Automaton
 {
     private readonly Dictionary<(string, string), HashSet<string>> _delta = [];
 
@@ -20,12 +20,17 @@ internal class DFA : Automaton
     }
 
     /// <summary>
-    ///     Constructor creating DFA from file
+    ///     Constructor creating DFA from the file
     /// </summary>
-    /// <param name="filename">filename of file we want to load automaton from</param>
+    /// <param name="filename">filename of the file we want to load automaton from</param>
     public DFA(string filename)
     {
-        var projectDirectory = Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName;
+        var projectDirectory = Directory.GetParent(Environment.CurrentDirectory)?.Parent?.Parent?.FullName;
+        if (projectDirectory is null)
+        {
+            Console.WriteLine("Project directory not found");
+            return;
+        }
         var path = Path.Combine(projectDirectory, "Automatons", filename);
         if (!File.Exists(path))
         {
@@ -60,7 +65,7 @@ internal class DFA : Automaton
     }
 
     /// <summary>
-    ///     Constuctor creating DFA from NFA
+    ///     Constructor creating DFA from NFA
     /// </summary>
     /// <param name="nfa"></param>
     public DFA(NFA nfa)
@@ -95,7 +100,7 @@ internal class DFA : Automaton
     }
 
     /// <summary>
-    ///     Transitions function for Deterministic Finite Automaton, as key pair (state, symbol), as value target state
+    ///     Transitions function for Deterministic Finite Automaton, as a key pair (state, symbol), as value target state
     /// </summary>
     public override Dictionary<(string, string), HashSet<string>> Delta
     {
@@ -106,7 +111,6 @@ internal class DFA : Automaton
             {
                 if (!States.Contains(key.Item1))
                     throw new ArgumentException("Initial state doesn't exist in automaton's set of states");
-
                 if (!Sigma.Contains(key.Item2))
                     throw new ArgumentException("Symbol doesn't exist in automaton's alphabet");
                 if (value[key].Count > 1)
@@ -118,7 +122,7 @@ internal class DFA : Automaton
     }
 
     /// <summary>
-    ///     Function checking if automaton accepts given word
+    ///     Function checking if automaton accepts a given word
     /// </summary>
     /// <param name="word">Checked word</param>
     /// <returns> Whether automaton accepts word or not</returns>
@@ -130,7 +134,6 @@ internal class DFA : Automaton
             if (!Sigma.Contains(symbol.ToString())) return false;
             currentState = Delta[(currentState, symbol.ToString())].First();
         }
-
         return IsFinalState(currentState);
     }
 }

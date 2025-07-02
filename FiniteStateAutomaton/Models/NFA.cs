@@ -1,9 +1,9 @@
-﻿namespace FiniteStateAutomaton;
+﻿namespace FiniteStateAutomaton.Models;
 
 /// <summary>
 ///     Class representing Non-deterministic Finite Automaton
 /// </summary>
-internal class NFA : Automaton
+internal sealed class NFA : Automaton
 {
     /// <summary>
     ///     Constant value representing epsilon transition
@@ -23,13 +23,14 @@ internal class NFA : Automaton
     /// <summary>
     ///     Constructor creating NFA from file
     /// </summary>
-    /// <param name="filename">nazwa pliku</param>
+    /// <param name="filename">filename</param>
     public NFA(string filename)
     {
-        var projectDirectory = Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName;
+        var projectDirectory = Directory.GetParent(Environment.CurrentDirectory)?.Parent?.Parent?.FullName;
+        if (projectDirectory is null)
+            throw new DirectoryNotFoundException("Project directory not found");
         var path = Path.Combine(projectDirectory, "Automatons", filename);
         if (!File.Exists(path))
-            // tell me what exception to throw
             throw new FileNotFoundException("Couldn't find filename on " + path);
         var lines = File.ReadAllLines(path);
         States = [];
@@ -82,7 +83,7 @@ internal class NFA : Automaton
         if (!States.Contains(destinationState))
             throw new ArgumentException("Destination state doesn't exist in automaton's set of states");
         if (!Delta.ContainsKey((initialState, Epsilon))) Delta[(initialState, Epsilon)] = new HashSet<string>();
-        if (!Sigma.Contains(Epsilon)) Sigma.Add(Epsilon);
+        Sigma.Add(Epsilon);
         Delta[(initialState, Epsilon)].Add(destinationState);
     }
 
@@ -101,9 +102,8 @@ internal class NFA : Automaton
             var currentState = stack.Pop();
             if (Delta.ContainsKey((currentState, Epsilon)))
                 foreach (var nextState in Delta[(currentState, Epsilon)])
-                    if (!closure.Contains(nextState))
+                    if (closure.Add(nextState))
                     {
-                        closure.Add(nextState);
                         stack.Push(nextState);
                     }
         }
@@ -112,10 +112,10 @@ internal class NFA : Automaton
     }
 
     /// <summary>
-    ///     Calculate epsilon closure for set of states
+    ///     Calculate epsilon closure for a set of states
     /// </summary>
     /// <param name="stateSet"> Set of states we want to get epsilon closure </param>
-    /// <returns>Set of states that;s included in epsilon closure of states set</returns>
+    /// <returns>Set of states that's included in epsilon closure of states set</returns>
     public HashSet<string> GetEpsilonClosure(HashSet<string> stateSet)
     {
         var closure = new HashSet<string>();
@@ -128,13 +128,14 @@ internal class NFA : Automaton
     /// </summary>
     public NFA RemoveEpsilonTransitions()
     {
-        var nfaWithoutEpsilon = new NFA();
-        nfaWithoutEpsilon.States = States;
-        nfaWithoutEpsilon.InitialState = InitialState;
-        nfaWithoutEpsilon.FinalStates = FinalStates;
-        nfaWithoutEpsilon.Sigma = Sigma.Where(i => i != Epsilon).ToHashSet();
-        nfaWithoutEpsilon.Delta = new Dictionary<(string, string), HashSet<string>>();
-
+        var nfaWithoutEpsilon = new NFA
+        {
+            States = States,
+            InitialState = InitialState,
+            FinalStates = FinalStates,
+            Sigma = Sigma.Where(i => i != Epsilon).ToHashSet(),
+            Delta = new Dictionary<(string, string), HashSet<string>>()
+        };
         var epsilonClosures = new Dictionary<string, HashSet<string>>();
         foreach (var state in nfaWithoutEpsilon.States) epsilonClosures[state] = GetEpsilonClosure(state);
         foreach (var state in nfaWithoutEpsilon.States)
@@ -155,10 +156,10 @@ internal class NFA : Automaton
     }
 
     /// <summary>
-    ///     Function checking if automaton accepts given word
+    ///     Function checking if automaton accepts a given word
     /// </summary>
     /// <param name="word"> Checked word </param>
-    /// <returns>Whether word is accepted by automaton or not </returns>
+    /// <returns>Whether a word is accepted by automaton or not </returns>
     public override bool Accepts(string word)
     {
         var currentStates = GetEpsilonClosure(InitialState);

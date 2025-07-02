@@ -3,26 +3,26 @@
 internal abstract class Automaton
 {
     private Dictionary<(string, string), HashSet<string>> _delta = [];
-    private HashSet<string> _finalStates = [];
+    private readonly HashSet<string> _finalStates = [];
     private string _initialState = "";
 
     /// <summary>
     ///     Automaton states
     /// </summary>
-    public virtual HashSet<string> States { get; protected set; }
+    public virtual HashSet<string> States { get; protected init; } = [];
 
     /// <summary>
     ///     Number of states in automaton
     /// </summary>
-    public virtual int NumberOfStates => States.Count;
+    protected virtual int NumberOfStates => States.Count;
 
     /// <summary>
     ///     Alphabet of automaton
     /// </summary>
-    public virtual HashSet<string> Sigma { get; protected set; }
+    public virtual HashSet<string> Sigma { get; protected init; } = [];
 
     /// <summary>
-    ///     Function of transition, as key pair (state, symbol), as set of target states
+    ///     Function of transition, as a key pair (state, symbol), as a set of target states
     /// </summary>
     public virtual Dictionary<(string, string), HashSet<string>> Delta
     {
@@ -67,7 +67,7 @@ internal abstract class Automaton
     public virtual HashSet<string> FinalStates
     {
         get => _finalStates;
-        protected set
+        protected init
         {
             foreach (var state in value)
                 if (!States.Contains(state))
@@ -83,13 +83,13 @@ internal abstract class Automaton
     /// <param name="state"> State we want to add </param>
     /// <param name="transitions"> Transition function of the new state </param>
     /// <returns> Newly added state </returns>
-    /// <exception cref="ArgumentException">State doesn't exist in set of automaton's states</exception>
+    /// <exception cref="ArgumentException">State doesn't exist in a set of automaton's states</exception>
     public string AddState(string? state = null, Dictionary<(string, string), HashSet<string>>? transitions = null)
     {
-        // if state is not given, we assign it default value q{number of states}
+        // if a state is not given, we assign it the default value q{number of states}
         state ??= $"q{NumberOfStates}";
         States.Add(state);
-        // If transition function is not given, we add transition for each symbol to empty set of states
+        // If the transition function is not given, we add a transition for each symbol to an empty set of states
         if (transitions is null)
             foreach (var symbol in Sigma)
                 Delta[(state, symbol)] = [];
@@ -145,17 +145,17 @@ internal abstract class Automaton
     {
         if (!States.Contains(from))
             throw new ArgumentException("Initial state doesn't exist in set of automaton's states");
-
         if (!Sigma.Contains(symbol))
             throw new ArgumentException("Symbol doesn't exist in automaton's alphabet");
         if (!States.Contains(to))
             throw new ArgumentException("Destination state doesn't exist in set of automaton's states");
-        if (!Delta.ContainsKey((from, symbol))) Delta[(from, symbol)] = new HashSet<string>();
+        if (!Delta.ContainsKey((from, symbol)))
+            Delta[(from, symbol)] = new HashSet<string>();
         Delta[(from, symbol)].Add(to);
     }
 
     /// <summary>
-    ///     Returns set of states after transition
+    ///     Returns a set of states after transition
     /// </summary>
     /// <param name="from"> State we're coming from </param>
     /// <param name="symbol"> Transition's symbol </param>
@@ -164,18 +164,17 @@ internal abstract class Automaton
     public HashSet<string> GetNextState(string from, string symbol)
     {
         if (!States.Contains(from)) throw new ArgumentException("State doesn't exist in set of automaton's states");
-
-        if (!Sigma.Contains(symbol)) throw new ArgumentException("Symbol nie istnieje w zbiorze alfabetu");
+        if (!Sigma.Contains(symbol)) throw new ArgumentException("Symbol doesn't exist in automaton's alphabet");
         if (!Delta.ContainsKey((from, symbol))) return new HashSet<string>();
         return Delta[(from, symbol)];
     }
 
     /// <summary>
-    ///     Returns whether given state is final
+    ///     Returns whether a given state is final
     /// </summary>
     /// <param name="state"> Checked state </param>
-    /// <returns> True if state is final, otherwise false</returns>
-    public bool IsFinalState(string state)
+    /// <returns> True if the state is final, otherwise false</returns>
+    protected bool IsFinalState(string state)
     {
         return FinalStates.Contains(state);
     }
@@ -183,10 +182,18 @@ internal abstract class Automaton
     /// <summary>
     ///     Saves automaton to file
     /// </summary>
-    /// <param name="filename"> Name of newly created file </param>
+    /// <param name="filename"> Name of the newly created file </param>
     public void SaveToFile(string filename)
     {
-        var projectDirectory = Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName;
+        if( string.IsNullOrEmpty(filename))
+            throw new ArgumentException("Filename cannot be null or empty");
+        if (filename.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            throw new ArgumentException("Filename contains invalid characters");
+        if(!filename.EndsWith("txt"))
+            throw new ArgumentException("Filename must be a .txt file");
+        var projectDirectory = Directory.GetParent(Environment.CurrentDirectory)?.Parent?.Parent?.FullName;
+        if (projectDirectory is null)
+            throw new InvalidOperationException("Could not determine project directory");
         var path = Path.Combine(projectDirectory, "Automatons", filename);
         using var sw = File.CreateText(path);
         sw.WriteLine(InitialState[1]);
@@ -197,9 +204,9 @@ internal abstract class Automaton
     }
 
     /// <summary>
-    ///     Checks if given word is accepted by automaton
+    ///     Checks if automaton accepts a given word
     /// </summary>
-    /// <param name="word"> word we want to check </param>
-    /// <returns>True if word is accepted by automaton, false otherwise </returns>
+    /// <param name="word"> word, we want to check </param>
+    /// <returns>True if automaton accepts a word, false otherwise </returns>
     public abstract bool Accepts(string word);
 }
