@@ -33,6 +33,7 @@ namespace FiniteStateAutomaton
         /// </summary>
         public bool IsRunning { get; private set; } = true;
 
+        Automaton? _automaton = null;
         /// <summary>
         /// Constructor of GUI class
         /// </summary>
@@ -85,7 +86,7 @@ namespace FiniteStateAutomaton
 
                     try
                     {
-                        gui.PrintAutomaton(automaton);
+                        PrintAutomaton(_automaton);
                     }
                     catch (Exception e)
                     {
@@ -95,7 +96,7 @@ namespace FiniteStateAutomaton
 
                     break;
                 case 2:
-                    if (automaton is null)
+                    if (_automaton is null)
                     {
                         Console.WriteLine("No automaton loaded.");
                         break;
@@ -103,7 +104,7 @@ namespace FiniteStateAutomaton
 
                     Console.WriteLine("Enter the word to check: ");
                     var word = Console.ReadLine() ?? string.Empty;
-                    Console.WriteLine(automaton.Accepts(word)
+                    Console.WriteLine(_automaton.Accepts(word)
                         ? "Automaton accepts this word"
                         : "Automaton doesn't accept this word");
                     break;
@@ -118,7 +119,7 @@ namespace FiniteStateAutomaton
 
                     try
                     {
-                        automaton = new NFA(filename);
+                        _automaton = new NFA(filename);
                     }
                     catch (Exception e)
                     {
@@ -130,7 +131,7 @@ namespace FiniteStateAutomaton
                     Console.WriteLine("Automaton successfully loaded.");
                     break;
                 case 4:
-                    if (automaton is null)
+                    if (_automaton is null)
                     {
                         Console.WriteLine("No automaton loaded.");
                         break;
@@ -140,7 +141,7 @@ namespace FiniteStateAutomaton
                     var destination = Console.ReadLine() ?? "filename.txt";
                     try
                     {
-                        automaton.SaveToFile(destination);
+                        _automaton.SaveToFile(destination);
                     }
                     catch (Exception e)
                     {
@@ -152,28 +153,24 @@ namespace FiniteStateAutomaton
                     Console.WriteLine("Automaton successfully saved.");
                     break;
                 case 5:
-                    List<string> exampleAutomatons =
-                    [
-
-                    ];
-                    var choice = gui.PrintMenu(exampleAutomatons);
-                    automaton = choice switch
+                    var choice = PrintMenu(exampleAutomatons);
+                    _automaton = choice switch
                     {
                         0 => new DFA("ZipCodeAutomaton.txt"),
                         1 => new NFA("binary.txt"),
                         2 => new NFA("numberParser.txt"),
-                        _ => automaton
+                        _ => _automaton
                     } ?? new DFA();
                     Console.WriteLine("EXAMPLE AUTOMATON LOADED");
                     break;
                 case 6:
-                    if (automaton is null)
+                    if (_automaton is null)
                     {
                         Console.WriteLine("No automaton loaded.");
                         break;
                     }
 
-                    if (automaton is not NFA nfaAutomaton)
+                    if (_automaton is not NFA nfaAutomaton)
                     {
                         Console.WriteLine("DFA Automaton doesn't have epsilon transitions");
                         break;
@@ -191,13 +188,13 @@ namespace FiniteStateAutomaton
 
                     break;
                 case 7:
-                    if (automaton is not NFA nfa)
+                    if (_automaton is not NFA nfa)
                     {
                         Console.WriteLine("Automaton is not NFA.");
                         break;
                     }
 
-                    automaton = new DFA(nfa);
+                    _automaton = new DFA(nfa);
                     Console.WriteLine("Automaton successfully converted to DFA");
                     break;
                 case 8:
@@ -206,15 +203,27 @@ namespace FiniteStateAutomaton
 
             }
         }
-
+        // Consider moving validation of page to separate method to avoid code duplication
         private void ExampleAutomatonsMenu()
         {
-            throw new NotImplementedException();
+            if (_page != Pages.ExampleAutomatonsMenu)
+            {
+                Console.Clear();
+                _page = Pages.ExampleAutomatonsMenu;
+                _cursorPosition = 0;
+            }
+            PrintMenu(MenuPages.MenuItems[_page]);
         }
 
         private void LoadExampleAutomaton()
         {
-            throw new NotImplementedException();
+            if (_page != Pages.LoadExampleAutomaton)
+            {
+                Console.Clear();
+                _page = Pages.LoadExampleAutomaton;
+                _cursorPosition = 0;
+            }
+            PrintMenu(MenuPages.MenuItems[_page]);
         }
 
         private void SaveAutomatonToFile()
@@ -234,12 +243,24 @@ namespace FiniteStateAutomaton
 
         private void ChooseNFAtype()
         {
-            throw new NotImplementedException();
+            if (_page != Pages.ChooseNFAtype)
+            {
+                Console.Clear();
+                _page = Pages.ChooseNFAtype;
+                _cursorPosition = 0;
+            }
+            PrintMenu(MenuPages.MenuItems[_page]);
         }
 
         private void ChooseAutomatonType()
         {
-            throw new NotImplementedException();
+            if (_page != Pages.ChooseAutomatonType)
+            {
+                Console.Clear();
+                _page = Pages.ChooseAutomatonType;
+                _cursorPosition = 0;
+            }
+            PrintMenu(MenuPages.MenuItems[_page]);
         }
 
         private void MainMenu()
