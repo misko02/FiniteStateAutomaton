@@ -1,5 +1,5 @@
-﻿using FiniteStateAutomaton.Models;
-using static FiniteStateAutomaton.Models.GuiMenuPages;
+﻿using FiniteStateAutomaton.Enums;
+using FiniteStateAutomaton.Models;
 
 namespace FiniteStateAutomaton
 {
@@ -8,22 +8,18 @@ namespace FiniteStateAutomaton
     /// </summary>
     internal class GUI
     {
-        
         /// <summary>
         /// Current Page of GUI
         /// </summary>
-        private readonly Pages page = MenuItems["MainMenu"];
-        
+        private Pages _page = Pages.MainMenu;
         /// <summary>
         ///     Cursor position in menu
         /// </summary>
         private int _cursorPosition = 0;
-
         /// <summary>
         ///     Width of a table column
         /// </summary>
         private readonly int _frameWidth = 9;
-        
         /// <summary>
         /// Center of the console window width
         /// </summary>
@@ -32,42 +28,56 @@ namespace FiniteStateAutomaton
         ///   Center of the console window height
         ///  </summary>
         private int HeightCenter => Console.WindowHeight / 2;
-        
-        /// <summary>
-        /// Current Page of GUI
-        /// </summary>
-        GuiMenuPages MenuPage { get; set; } = GuiMenuPages["MainMenu"];
-        
-
         /// <summary>
         ///     Is GUI running?
         /// </summary>
-        public bool IsRunning { get; set; } = true;
+        public bool IsRunning { get; private set; } = true;
 
+        /// <summary>
+        /// Constructor of GUI class
+        /// </summary>
         public GUI()
         {
             Console.Title = "Finite State Automaton";
             Console.CursorVisible = false;
         }
-
         public void Run()
         {
-            PrintMenu()
-            
+            var pagesDictionary = new Dictionary<Pages, Action>
+            {
+                { Pages.MainMenu, MainMenu },
+                { Pages.ChooseAutomatonType, ChooseAutomatonType },
+                { Pages.ChooseNFAtype, ChooseNFAtype },
+                { Pages.DefineStates, LoadStates },
+                { Pages.DefineAlphabet, LoadAlphabet },
+                { Pages.DefineInitialState, LoadInitialStates },
+                { Pages.DefineFinalStates, LoadFinalStates },
+                { Pages.DefineTransitions, LoadTransitions },
+                { Pages.PrintAutomaton, () => PrintAutomaton(_automaton) },
+                { Pages.CheckWord, CheckWord },
+                { Pages.LoadAutomatonFromFile, LoadAutomatonFromFile },
+                { Pages.SaveAutomatonToFile, SaveAutomatonToFile },
+                { Pages.LoadExampleAutomaton, LoadExampleAutomaton },
+                { Pages.ExampleAutomatonsMenu, ExampleAutomatonsMenu }
+            };
+            pagesDictionary[_page]();
+            int?option = PrintMenu(MenuPages.MenuItems[_page]);
+
             if (!option.HasValue)
             {
                 Console.WriteLine("Invalid option. Please try again.");
                 return;
             }
+
             switch (option.Value)
             {
                 case 0:
                     var automatonTypes = new List<Type?> { typeof(DFA), typeof(NFA) };
-                    var automatonType = automatonTypes[gui.PrintMenu(automatonTypes.Select(x => x.Name).ToList()) ?? 0];
-                    automaton = gui.LoadAutomaton(automatonType);
+                    var automatonType = automatonTypes[PrintMenu(automatonTypes.Select(x => x.Name).ToList()) ?? 0];
+                    _automaton = LoadAutomaton(automatonType);
                     break;
                 case 1:
-                    if (automaton is null)
+                    if (_automaton is null)
                     {
                         Console.WriteLine("No automaton loaded.");
                         break;
@@ -82,6 +92,7 @@ namespace FiniteStateAutomaton
                         Console.WriteLine("Automaton couldn't be printed.");
                         Console.WriteLine($"Exception: {e.Message}");
                     }
+
                     break;
                 case 2:
                     if (automaton is null)
@@ -89,6 +100,7 @@ namespace FiniteStateAutomaton
                         Console.WriteLine("No automaton loaded.");
                         break;
                     }
+
                     Console.WriteLine("Enter the word to check: ");
                     var word = Console.ReadLine() ?? string.Empty;
                     Console.WriteLine(automaton.Accepts(word)
@@ -103,6 +115,7 @@ namespace FiniteStateAutomaton
                         Console.WriteLine("Filename cannot be empty.");
                         break;
                     }
+
                     try
                     {
                         automaton = new NFA(filename);
@@ -135,14 +148,13 @@ namespace FiniteStateAutomaton
                         Console.WriteLine($"Exception: {e.Message}");
                         break;
                     }
+
                     Console.WriteLine("Automaton successfully saved.");
                     break;
                 case 5:
                     List<string> exampleAutomatons =
                     [
-                        "Zip Code automaton checker",       // Example of DFA automaton
-                        "Binary string checker",            // Example of NFA automaton
-                        "Floating point number checker"     //Example of automaton with epsilon transitions
+
                     ];
                     var choice = gui.PrintMenu(exampleAutomatons);
                     automaton = choice switch
@@ -184,53 +196,108 @@ namespace FiniteStateAutomaton
                         Console.WriteLine("Automaton is not NFA.");
                         break;
                     }
+
                     automaton = new DFA(nfa);
                     Console.WriteLine("Automaton successfully converted to DFA");
                     break;
                 case 8:
-                    gui.IsRunning = false;
+                    IsRunning = false;
                     return;
-            
+
             }
-        
+        }
+
+        private void ExampleAutomatonsMenu()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void LoadExampleAutomaton()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void SaveAutomatonToFile()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void LoadAutomatonFromFile()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void CheckWord()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void ChooseNFAtype()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void ChooseAutomatonType()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void MainMenu()
+        {
+            if (_page != Pages.MainMenu)
+            {
+                Console.Clear();
+                _page = Pages.MainMenu;
+                _cursorPosition = 0;
+            }
+            PrintMenu(MenuPages.MenuItems[_page]);
+        }
 
         /// <summary>
         ///     Printing a menu with options
         /// </summary>
-        public int? PrintMenu(List<string> options)
+        private int? PrintMenu(List<string> options)
         {
-            
-            Console.Clear();
-            for (var i = 0; i < options.Count; i++)
+            int? option = 0;
+            while (option is not null)
             {
-                if (_cursorPosition == i)
+                Console.Clear();
+                for (var i = 0; i < options.Count; i++)
                 {
-                    Console.BackgroundColor = ConsoleColor.White;
-                    Console.ForegroundColor = ConsoleColor.Black;
+                    if (_cursorPosition == i)
+                    {
+                        Console.BackgroundColor = ConsoleColor.White;
+                        Console.ForegroundColor = ConsoleColor.Black;
+                    }
+
+                    Console.WriteLine($"{i + 1}. {options[i]}");
+                    Console.ResetColor();
                 }
-
-                Console.WriteLine($"{i + 1}. {options[i]}");
-                Console.ResetColor();
+                option = HandleMenuInput(options); 
+                if(option is not null)
+                {
+                    return option;
+                }
             }
-
+            return option;
+        }
+        
+        private int? HandleMenuInput(List<string> options)
+        {   
             var key = Console.ReadKey();
-            Console.Beep();
             switch (key.Key)
             {
                 case ConsoleKey.UpArrow:
-                    _cursorPosition = (options.Count + _cursorPosition - 1) % options.Count;
-                    PrintMenu(options);
-                    break;
+                    _cursorPosition = (_cursorPosition - 1 + options.Count) % options.Count;
+                    return null;
                 case ConsoleKey.DownArrow:
-                    _cursorPosition = (options.Count + _cursorPosition + 1) % options.Count;
-                    PrintMenu(options);
-                    break;
+                    _cursorPosition = (_cursorPosition + 1) % options.Count;
+                    return null;
                 case ConsoleKey.Enter:
-                    break;
-                default: return null;
+                    return _cursorPosition;
+                default:
+                    return null;
             }
-
-            return _cursorPosition;
         }
 
         /// <summary>
@@ -581,7 +648,7 @@ namespace System
         /// <param name="s">String we want to center</param>
         /// <param name="width">Width of string</param>
         /// <returns>String with padded both sides with space</returns>
-        /// <example><c>"code".CenterString(10)</c>="   code   "</example>
+        /// <example><c>"code".CenterString(10) = "‎ ‎ ‎ code‎ ‎ ‎ "</c> </example>
         public static string CenterString(this string s, int width)
         {
             return s.PadLeft((width - s.Length) / 2 + s.Length).PadRight(width);

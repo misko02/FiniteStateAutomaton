@@ -1,10 +1,13 @@
+using FiniteStateAutomaton.Enums;
+using static FiniteStateAutomaton.Enums.Pages;
+
 namespace FiniteStateAutomaton.Models;
-public record GuiMenuPages
+public record MenuPages
 {
-    public static readonly Dictionary<string, List<string>> MenuItems = new()
+    public static readonly Dictionary<Pages, List<string>> MenuItems = new()
     {
         {
-            "MainMenu",
+            MainMenu,
             [
                 "Load Automaton",
                 "Print Automaton",
@@ -18,24 +21,25 @@ public record GuiMenuPages
             ]
         },
         {
-            "ChooseAutomatonType", 
+            ChooseAutomatonType, 
             [
                 "DFA", 
                 "NFA"
             ]
         },
         {
-            "ChooseNFAtype", 
+            ChooseNFAtype,  
             [
                 "NFA with epsilon transitions", 
                 "NFA without epsilon transitions"
             ]
         },
         {
-            "ExampleAutomaton", 
+            ExampleAutomatonsMenu,
             [
-                "DFA Example", 
-                "NFA Example"
+                "Zip Code automaton checker",       // Example of DFA automaton
+                "Binary string checker",            // Example of NFA automaton
+                "Floating point number checker"     //Example of automaton with epsilon transitions
             ]
         }
     };
