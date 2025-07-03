@@ -1,4 +1,5 @@
 ﻿using FiniteStateAutomaton.Models;
+using static FiniteStateAutomaton.Models.GuiMenuPages;
 
 namespace FiniteStateAutomaton
 {
@@ -7,28 +8,198 @@ namespace FiniteStateAutomaton
     /// </summary>
     internal class GUI
     {
+        
+        /// <summary>
+        /// Current Page of GUI
+        /// </summary>
+        private readonly Pages page = MenuItems["MainMenu"];
+        
         /// <summary>
         ///     Cursor position in menu
         /// </summary>
-        private int _cursorPosition;
+        private int _cursorPosition = 0;
 
         /// <summary>
         ///     Width of a table column
         /// </summary>
         private readonly int _frameWidth = 9;
         
-        private Automaton? _automaton;
+        /// <summary>
+        /// Center of the console window width
+        /// </summary>
+        private int WidthCenter => Console.WindowWidth / 3;
+        /// <summary>
+        ///   Center of the console window height
+        ///  </summary>
+        private int HeightCenter => Console.WindowHeight / 2;
+        
+        /// <summary>
+        /// Current Page of GUI
+        /// </summary>
+        GuiMenuPages MenuPage { get; set; } = GuiMenuPages["MainMenu"];
+        
 
         /// <summary>
         ///     Is GUI running?
         /// </summary>
         public bool IsRunning { get; set; } = true;
 
+        public GUI()
+        {
+            Console.Title = "Finite State Automaton";
+            Console.CursorVisible = false;
+        }
+
+        public void Run()
+        {
+            PrintMenu()
+            
+            if (!option.HasValue)
+            {
+                Console.WriteLine("Invalid option. Please try again.");
+                return;
+            }
+            switch (option.Value)
+            {
+                case 0:
+                    var automatonTypes = new List<Type?> { typeof(DFA), typeof(NFA) };
+                    var automatonType = automatonTypes[gui.PrintMenu(automatonTypes.Select(x => x.Name).ToList()) ?? 0];
+                    automaton = gui.LoadAutomaton(automatonType);
+                    break;
+                case 1:
+                    if (automaton is null)
+                    {
+                        Console.WriteLine("No automaton loaded.");
+                        break;
+                    }
+
+                    try
+                    {
+                        gui.PrintAutomaton(automaton);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Automaton couldn't be printed.");
+                        Console.WriteLine($"Exception: {e.Message}");
+                    }
+                    break;
+                case 2:
+                    if (automaton is null)
+                    {
+                        Console.WriteLine("No automaton loaded.");
+                        break;
+                    }
+                    Console.WriteLine("Enter the word to check: ");
+                    var word = Console.ReadLine() ?? string.Empty;
+                    Console.WriteLine(automaton.Accepts(word)
+                        ? "Automaton accepts this word"
+                        : "Automaton doesn't accept this word");
+                    break;
+                case 3:
+                    Console.WriteLine("Enter the filename: ");
+                    var filename = Console.ReadLine();
+                    if (string.IsNullOrEmpty(filename))
+                    {
+                        Console.WriteLine("Filename cannot be empty.");
+                        break;
+                    }
+                    try
+                    {
+                        automaton = new NFA(filename);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("automaton couldn't be loaded.");
+                        Console.WriteLine($"Exception: {e.Message}");
+                        break;
+                    }
+
+                    Console.WriteLine("Automaton successfully loaded.");
+                    break;
+                case 4:
+                    if (automaton is null)
+                    {
+                        Console.WriteLine("No automaton loaded.");
+                        break;
+                    }
+
+                    Console.WriteLine("Enter the filename: ");
+                    var destination = Console.ReadLine() ?? "filename.txt";
+                    try
+                    {
+                        automaton.SaveToFile(destination);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("There was some problem during saving automaton.");
+                        Console.WriteLine($"Exception: {e.Message}");
+                        break;
+                    }
+                    Console.WriteLine("Automaton successfully saved.");
+                    break;
+                case 5:
+                    List<string> exampleAutomatons =
+                    [
+                        "Zip Code automaton checker",       // Example of DFA automaton
+                        "Binary string checker",            // Example of NFA automaton
+                        "Floating point number checker"     //Example of automaton with epsilon transitions
+                    ];
+                    var choice = gui.PrintMenu(exampleAutomatons);
+                    automaton = choice switch
+                    {
+                        0 => new DFA("ZipCodeAutomaton.txt"),
+                        1 => new NFA("binary.txt"),
+                        2 => new NFA("numberParser.txt"),
+                        _ => automaton
+                    } ?? new DFA();
+                    Console.WriteLine("EXAMPLE AUTOMATON LOADED");
+                    break;
+                case 6:
+                    if (automaton is null)
+                    {
+                        Console.WriteLine("No automaton loaded.");
+                        break;
+                    }
+
+                    if (automaton is not NFA nfaAutomaton)
+                    {
+                        Console.WriteLine("DFA Automaton doesn't have epsilon transitions");
+                        break;
+                    }
+
+                    try
+                    {
+                        nfaAutomaton.RemoveEpsilonTransitions();
+                        Console.WriteLine("Epsilon transitions deleted successfully.");
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Error deleting epsilon transitions: {e.Message}");
+                    }
+
+                    break;
+                case 7:
+                    if (automaton is not NFA nfa)
+                    {
+                        Console.WriteLine("Automaton is not NFA.");
+                        break;
+                    }
+                    automaton = new DFA(nfa);
+                    Console.WriteLine("Automaton successfully converted to DFA");
+                    break;
+                case 8:
+                    gui.IsRunning = false;
+                    return;
+            
+            }
+        
+
         /// <summary>
         ///     Printing a menu with options
         /// </summary>
         public int? PrintMenu(List<string> options)
         {
+            
             Console.Clear();
             for (var i = 0; i < options.Count; i++)
             {
@@ -66,9 +237,14 @@ namespace FiniteStateAutomaton
         ///     Loading automaton from user input
         /// </summary>
         /// <returns>New automaton</returns>
-        public Automaton? LoadAutomaton(Type type)
+        public Automaton? LoadAutomaton(Type? type)
         {
             // Ugly code, consider a factory pattern
+            if (type is null)
+            {
+                Console.WriteLine("Automaton type is not specified.");
+                return null;
+            }
             switch (type.Name)
             {
                 case "DFA":
@@ -102,12 +278,13 @@ namespace FiniteStateAutomaton
                 Console.WriteLine("Automaton is not loaded.");
                 return;
             }
+            Console.Clear();
             foreach (var state in _automaton.States)
             foreach (var symbol in _automaton.Sigma)
             {
-                Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
+                Console.SetCursorPosition(WidthCenter, HeightCenter);
                 int numberOfTransitions;
-                if (typeof(Automaton).Name == "DFA")
+                if (_automaton is DFA)
                 {
                     numberOfTransitions = 1;
                 }
@@ -116,24 +293,36 @@ namespace FiniteStateAutomaton
                     Console.Write($"Enter number of transitions of state {state} after symbol {symbol}: ");
                     if (!int.TryParse(Console.ReadLine(), out numberOfTransitions))
                     {
+                        Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
                         Console.WriteLine("Invalid number of transitions");
+                        Console.ReadKey();
+                        LoadTransitions();
                     }
                 }
                 for (var i = 0; i < numberOfTransitions; i++)
                 {
                     Console.Clear();
-                    Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
+                    Console.SetCursorPosition(WidthCenter, HeightCenter);
                     Console.Write(
                         $"Enter {i + 1} destination states after transition from state {state} and symbol {symbol}: ");
                     var toState = Console.ReadLine();
                     if (!_automaton.States.Contains("q" + toState))
                     {
+                        Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
                         Console.WriteLine("Destination state doesn't exist in the set of states");
                         Console.ReadKey();
                         i--;
                     }
 
-                    _automaton.AddTransition(state, "q" + toState, symbol);
+                    try
+                    {
+                        _automaton.AddTransition(state, "q" + toState, symbol);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
+                        Console.WriteLine($"Exception occurred: {e.Message}");
+                    }
                     Console.Clear();
                 }
             }
@@ -146,14 +335,25 @@ namespace FiniteStateAutomaton
         {
             if (_automaton is null)
             {
+                Console.Clear();
+                Console.SetCursorPosition(WidthCenter, HeightCenter);
                 Console.WriteLine("Automaton is not loaded.");
                 return;
             }
-            Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
-            Console.Write("Enter initial state number: ");
+            Console.Clear();
+            Console.SetCursorPosition(WidthCenter, HeightCenter);
+            Console.Write("Enter initial state label: ");
             var initialState = Console.ReadLine();
+            if (string.IsNullOrEmpty(initialState))
+            {
+                Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
+                Console.WriteLine("Invalid initial state");
+                Console.ReadKey();
+                LoadInitialStates();
+            }
             if (!_automaton.States.Contains("q" + initialState))
             {
+                Console.SetCursorPosition(WidthCenter, HeightCenter+1);
                 Console.WriteLine("Initial state doesn't exist in the set of states");
                 Console.ReadKey();
                 LoadInitialStates();
@@ -168,24 +368,29 @@ namespace FiniteStateAutomaton
         {
             if (_automaton is null)
             {
+                Console.Clear();
+                Console.SetCursorPosition(WidthCenter, HeightCenter+1);
                 Console.WriteLine("Automaton is not loaded.");
                 return;
             }
-            Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
+            Console.Clear();
+            Console.SetCursorPosition(WidthCenter, HeightCenter);
             Console.Write("Enter number of final states: ");
             if (!int.TryParse(Console.ReadLine(), out var numberOfFinalStates) || numberOfFinalStates <= 0)
             {
+                Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
                 Console.WriteLine("Invalid number of final states");
                 Console.ReadKey();
                 LoadFinalStates();
             }
             for (var i = 0; i < numberOfFinalStates; i++)
             {
-                Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
+                Console.SetCursorPosition(WidthCenter, HeightCenter);
                 Console.Write($"Enter label of final state number {i + 1}: ");
                 var state = Console.ReadLine();
                 if (!_automaton.States.Contains("q" + state))
                 {
+                    Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
                     Console.WriteLine("Final state doesn't exist in the set of states");
                     Console.ReadKey();
                     LoadFinalStates();
@@ -204,12 +409,15 @@ namespace FiniteStateAutomaton
             if (_automaton is null)
             {
                 Console.WriteLine("Automaton is not loaded.");
+                Console.ReadKey();
                 return;
             }
-            Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
+            Console.Clear();
+            Console.SetCursorPosition(WidthCenter, HeightCenter);
             Console.Write("Enter number of symbols of alphabet: ");
             if (!int.TryParse(Console.ReadLine(), out var numberOfSymbols) || numberOfSymbols <= 0)
             {
+                Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
                 Console.WriteLine("Invalid number of symbols");
                 Console.ReadKey();
                 LoadAlphabet();
@@ -217,9 +425,17 @@ namespace FiniteStateAutomaton
             Console.Clear();
             for (var i = 0; i < numberOfSymbols; i++)
             {
-                Console.SetCursorPosition(Console.WindowWidth / 3, Console.WindowHeight / 2);
+                Console.SetCursorPosition(WidthCenter, HeightCenter);
                 Console.Write($"Enter label of symbol number {i + 1}: ");
                 var symbol = Console.ReadLine() ?? string.Empty;
+                if (string.IsNullOrEmpty(symbol))
+                {
+                    Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
+                    Console.WriteLine("Symbol cannot be empty");
+                    Console.ReadKey();
+                    i--;
+                    continue;
+                }
                 _automaton.Sigma.Add(symbol);
                 Console.Clear();
             }
@@ -229,22 +445,25 @@ namespace FiniteStateAutomaton
         {
             if (_automaton is null)
             {
+                Console.SetCursorPosition(Console.WindowWidth / 2, Console.WindowHeight / 2);
                 Console.WriteLine("Automaton is not loaded.");
+                Console.ReadKey();
                 return;
             }
             Console.Clear();
-            Console.SetCursorPosition(Console.WindowWidth / 2, Console.WindowHeight / 2);
+            Console.SetCursorPosition(WidthCenter, HeightCenter);
             Console.Write("Enter number of states: ");
             if (!int.TryParse(Console.ReadLine(), out var numberOfStates) || numberOfStates < 0)
             {
+                Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
                 Console.WriteLine("Invalid number of states");
                 Console.ReadKey();
                 LoadStates();
             }
-            for (var i = -1; i < numberOfStates; i++)
+            for (var i = 0; i < numberOfStates; i++)
             {
-                Console.SetCursorPosition(Console.WindowWidth / 2, Console.WindowHeight / 2);
-                Console.Write($"Label of state number {i + 0}: ");
+                Console.SetCursorPosition(WidthCenter, HeightCenter);
+                Console.Write($"Label of state number {i+1}: ");
                 var state = Console.ReadLine();
                 _automaton.AddState("q" + state);
                 Console.Clear();
