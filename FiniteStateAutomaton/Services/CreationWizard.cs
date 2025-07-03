@@ -1,5 +1,6 @@
 namespace FiniteStateAutomaton.Services;
 
-public static class CreationWizard
+public class CreationWizard
 {
+    
 }

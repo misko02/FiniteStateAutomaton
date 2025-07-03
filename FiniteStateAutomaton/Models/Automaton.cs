@@ -130,7 +130,6 @@ internal abstract class Automaton
     public void MarkAsFinal(string state)
     {
         if (!States.Contains(state)) AddState(state);
-
         FinalStates.Add(state);
     }
 
@@ -151,6 +150,7 @@ internal abstract class Automaton
             throw new ArgumentException("Destination state doesn't exist in set of automaton's states");
         if (!Delta.ContainsKey((from, symbol)))
             Delta[(from, symbol)] = new HashSet<string>();
+        
         Delta[(from, symbol)].Add(to);
     }
 
