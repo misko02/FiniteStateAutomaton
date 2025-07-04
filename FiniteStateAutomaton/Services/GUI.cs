@@ -1,5 +1,6 @@
 ﻿using FiniteStateAutomaton.Enums;
 using FiniteStateAutomaton.Models;
+using FiniteStateAutomaton.Services;
 
 namespace FiniteStateAutomaton
 {
@@ -47,7 +48,7 @@ namespace FiniteStateAutomaton
             var pagesDictionary = new Dictionary<Pages, Action>
             {
                 { Pages.MainMenu, MainMenu },
-                { Pages.ChooseAutomatonType, ChooseAutomatonType },
+                { Pages.ChooseAutomatonType, ChooseAutomatonType},
                 { Pages.ChooseNFAtype, ChooseNFAtype },
                 { Pages.DefineStates, LoadStates },
                 { Pages.DefineAlphabet, LoadAlphabet },
@@ -62,20 +63,14 @@ namespace FiniteStateAutomaton
                 { Pages.ExampleAutomatonsMenu, ExampleAutomatonsMenu }
             };
             pagesDictionary[_page]();
-            int?option = PrintMenu(MenuPages.MenuItems[_page]);
 
-            if (!option.HasValue)
-            {
-                Console.WriteLine("Invalid option. Please try again.");
-                return;
-            }
-
+            int? option = 1;
             switch (option.Value)
             {
                 case 0:
                     var automatonTypes = new List<Type?> { typeof(DFA), typeof(NFA) };
                     var automatonType = automatonTypes[PrintMenu(automatonTypes.Select(x => x.Name).ToList()) ?? 0];
-                    _automaton = LoadAutomaton(automatonType);
+                    _automaton = LoadAutomaton();
                     break;
                 case 1:
                     if (_automaton is null)
@@ -153,7 +148,7 @@ namespace FiniteStateAutomaton
                     Console.WriteLine("Automaton successfully saved.");
                     break;
                 case 5:
-                    var choice = PrintMenu(exampleAutomatons);
+                    var choice = PrintMenu(MenuPages.MenuItems[Pages.ExampleAutomatonsMenu]);
                     _automaton = choice switch
                     {
                         0 => new DFA("ZipCodeAutomaton.txt"),
@@ -260,7 +255,29 @@ namespace FiniteStateAutomaton
                 _page = Pages.ChooseAutomatonType;
                 _cursorPosition = 0;
             }
-            PrintMenu(MenuPages.MenuItems[_page]);
+            var option = PrintMenu(MenuPages.MenuItems[_page]);
+            
+            if (option is null)
+            {
+                Console.WriteLine("Invalid option. Please try again.");
+                return;
+            }
+            
+            switch (option.Value)
+            {
+                case 0:
+                    _automaton = new DFA();
+                    break;
+                case 1: {
+                    _automaton = new NFA();
+                    ChooseNFAtype();
+                    break;
+                }
+                default:
+                    Console.WriteLine("Invalid option. Please try again.");
+                    return;
+            }
+            
         }
 
         private void MainMenu()
@@ -271,7 +288,49 @@ namespace FiniteStateAutomaton
                 _page = Pages.MainMenu;
                 _cursorPosition = 0;
             }
-            PrintMenu(MenuPages.MenuItems[_page]);
+            int? option = PrintMenu(MenuPages.MenuItems[_page]);
+            if (option is null)
+            {
+                Console.WriteLine("Invalid option. Please try again.");
+                return;
+            }   
+            switch (option.Value)
+            {
+                case 0:
+                    ChooseAutomatonType();
+                    LoadAutomaton();
+                    break;
+                case 1:
+                    PrintAutomaton(_automaton);
+                    break;
+                case 2:
+                    CheckWord();
+                    break;
+                case 3:
+                    LoadAutomatonFromFile();
+                    break;
+                case 4:
+                    SaveAutomatonToFile();
+                    break;
+                case 5:
+                    LoadExampleAutomaton();
+                    break;
+                case 6:
+                    if (_automaton is NFA nfa)
+                        nfa.RemoveEpsilonTransitions();
+                    else
+                        Console.WriteLine("DFA automaton doesn't have epsilon transitions");
+                    break;
+                case 7:
+                    if (_automaton is NFA nfaAutomaton)
+                        _automaton = new DFA(nfaAutomaton);
+                    else
+                        Console.WriteLine("Automaton is not NFA.");
+                    break;
+                case 8:
+                    IsRunning = false;
+                    return;
+            }
         }
 
         /// <summary>
@@ -325,27 +384,12 @@ namespace FiniteStateAutomaton
         ///     Loading automaton from user input
         /// </summary>
         /// <returns>New automaton</returns>
-        public Automaton? LoadAutomaton(Type? type)
+        public Automaton? LoadAutomaton()
         {
             // Ugly code, consider a factory pattern
-            if (type is null)
-            {
-                Console.WriteLine("Automaton type is not specified.");
-                return null;
-            }
-            switch (type.Name)
-            {
-                case "DFA":
-                    _automaton = new DFA(); break;
-                case "NFA":
-                    _automaton = new NFA();
-                    List<string> options = ["With epsilon transitions", "Without epsilon transitions"];
-                    if (PrintMenu(options) == 0) _automaton.Sigma.Add(NFA.Epsilon);
-                    break;
-                default:
-                    Console.WriteLine("Invalid automaton type selected.");
-                    return null;
-            }
+            CreationWizard wizard = CreationWizard.Wizard;
+            wizard.LoadAutomaton();
+            ChooseAutomatonType();
             LoadStates();
             LoadAlphabet();
             LoadInitialStates();
