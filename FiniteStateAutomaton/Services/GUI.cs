@@ -48,9 +48,9 @@ namespace FiniteStateAutomaton
             var pagesDictionary = new Dictionary<Pages, Action>
             {
                 { Pages.MainMenu, MainMenu },
-                { Pages.ChooseAutomatonType, ChooseAutomatonType},
-                { Pages.ChooseNFAtype, ChooseNFAtype },
-                { Pages.DefineStates, LoadStates },
+                { Pages.ChooseAutomatonType, () => ChooseAutomatonType()},
+                { Pages.ChooseNFAtype, () => ChooseNFAtype()},
+                { Pages.DefineStates, () => LoadStates() },
                 { Pages.DefineAlphabet, LoadAlphabet },
                 { Pages.DefineInitialState, LoadInitialStates },
                 { Pages.DefineFinalStates, LoadFinalStates },
@@ -89,7 +89,7 @@ namespace FiniteStateAutomaton
 
         private void SaveAutomatonToFile()
         {
-            // I don't want to add Exit neither to have error in case of no automaton loaded, so i'll have to use stack to remember previous pages. Consider.
+            // I don't want to add Exit neither to have error in case of no automaton loaded, so I'll have to use stack to remember previous pages. Consider.
             if (_page != Pages.SaveAutomatonToFile)
             {
                 Console.Clear();
@@ -167,7 +167,7 @@ namespace FiniteStateAutomaton
                 : "Automaton doesn't accept this word");
         }
 
-        private void ChooseNFAtype()
+        private string ChooseNFAtype()
         {
             if (_page != Pages.ChooseNFAtype)
             {
@@ -175,10 +175,19 @@ namespace FiniteStateAutomaton
                 _page = Pages.ChooseNFAtype;
                 _cursorPosition = 0;
             }
-            PrintMenu(MenuPages.MenuItems[_page]);
+            var option = PrintMenu(MenuPages.MenuItems[_page]);
+            switch (option)
+            {
+                case 0:
+                    return "Epsilon NFA";
+                case 1:
+                    return "NFA";
+                default:
+                    return "Undefined";
+            }
         }
 
-        private void ChooseAutomatonType()
+        private string ChooseAutomatonType()
         {
             if (_page != Pages.ChooseAutomatonType)
             {
@@ -188,25 +197,16 @@ namespace FiniteStateAutomaton
             }
             var option = PrintMenu(MenuPages.MenuItems[_page]);
             
-            if (option is null)
-            {
-                Console.WriteLine("Invalid option. Please try again.");
-                return;
-            }
-            
-            switch (option.Value)
+            switch (option)
             {
                 case 0:
-                    _automaton = new DFA();
-                    break;
+                    return "DFA";
                 case 1: {
-                    _automaton = new NFA();
-                    ChooseNFAtype();
-                    break;
+                    return ChooseNFAtype();
                 }
                 default:
                     Console.WriteLine("Invalid option. Please try again.");
-                    return;
+                    return "Undefined";
             }
             
         }
@@ -219,16 +219,10 @@ namespace FiniteStateAutomaton
                 _page = Pages.MainMenu;
                 _cursorPosition = 0;
             }
-            int? option = PrintMenu(MenuPages.MenuItems[_page]);
-            if (option is null)
+            var option = PrintMenu(MenuPages.MenuItems[_page]);
+            switch (option)
             {
-                Console.WriteLine("Invalid option. Please try again.");
-                return;
-            }   
-            switch (option.Value)
-            {
-                case 0:
-                    ChooseAutomatonType();
+                case 0: 
                     LoadAutomaton();
                     break;
                 case 1:
@@ -267,10 +261,9 @@ namespace FiniteStateAutomaton
         /// <summary>
         ///     Printing a menu with options
         /// </summary>
-        private int? PrintMenu(List<string> options)
+        private int PrintMenu(List<string> options)
         {
-            int? option = 0;
-            while (option is not null)
+            while (true)
             {
                 Console.Clear();
                 for (var i = 0; i < options.Count; i++)
@@ -284,13 +277,12 @@ namespace FiniteStateAutomaton
                     Console.WriteLine($"{i + 1}. {options[i]}");
                     Console.ResetColor();
                 }
-                option = HandleMenuInput(options); 
-                if(option is not null)
+                var option = HandleMenuInput(options); 
+                if(option.HasValue)
                 {
-                    return option;
+                    return option.Value;
                 }
             }
-            return option;
         }
         
         private int? HandleMenuInput(List<string> options)
@@ -319,16 +311,15 @@ namespace FiniteStateAutomaton
         {
             // Ugly code, consider a factory pattern
             CreationWizard wizard = CreationWizard.Wizard;
-            Automaton? newAutomaton = null; //Risky, so I have to change it, but for now I just want to get rid of the warning
-            wizard.LoadAutomaton();
-            ChooseAutomatonType();
-            LoadStates();
+            var type = ChooseAutomatonType();
+            wizard.ChooseAutomatonType(type);
+            List<string> states = LoadStates();
+            wizard.DefineStates(states);
             LoadAlphabet();
             LoadInitialStates();
             LoadFinalStates();
             LoadTransitions();
             PrintAutomaton(_automaton);
-            _automaton = newAutomaton;
         }
         
         /// <summary>
@@ -505,14 +496,14 @@ namespace FiniteStateAutomaton
             }
         }
 
-        private void LoadStates()
+        private List<string> LoadStates()
         {
             if (_automaton is null)
             {
                 Console.SetCursorPosition(Console.WindowWidth / 2, Console.WindowHeight / 2);
                 Console.WriteLine("Automaton is not loaded.");
                 Console.ReadKey();
-                return;
+                return new List<string>(); // I will implement this later, when I need to return states
             }
             Console.Clear();
             Console.SetCursorPosition(WidthCenter, HeightCenter);
@@ -522,7 +513,6 @@ namespace FiniteStateAutomaton
                 Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
                 Console.WriteLine("Invalid number of states");
                 Console.ReadKey();
-                LoadStates();
             }
             for (var i = 0; i < numberOfStates; i++)
             {
@@ -531,14 +521,16 @@ namespace FiniteStateAutomaton
                 var state = Console.ReadLine();
                 _automaton.AddState("q" + state);
                 Console.Clear();
-            }   
+            }
+
+            return new List<string>(); // I'll implement this later, when I need to return states
         }
         
 
         /// <summary>
         ///     Print automaton in tabular form
         /// </summary>
-        public void PrintAutomaton(Automaton? automaton)
+        private void PrintAutomaton(Automaton? automaton)
         {
             if (automaton is null)
             {
