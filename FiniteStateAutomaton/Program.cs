@@ -3,5 +3,4 @@
 while (gui.IsRunning)
 {
     gui.Run();
-    Console.ReadKey();
 }

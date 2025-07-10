@@ -14,6 +14,10 @@ namespace FiniteStateAutomaton
         /// </summary>
         private Pages _page = Pages.MainMenu;
         /// <summary>
+        /// Stack of previous pages to allow going back in menu
+        /// </summary>
+        private Stack<Pages> _previousPages = new();
+        /// <summary>
         ///     Cursor position in menu
         /// </summary>
         private int _cursorPosition;
@@ -59,205 +63,11 @@ namespace FiniteStateAutomaton
                 { Pages.CheckWord, CheckWord },
                 { Pages.LoadAutomatonFromFile, LoadAutomatonFromFile },
                 { Pages.SaveAutomatonToFile, SaveAutomatonToFile },
-                { Pages.LoadExampleAutomaton, LoadExampleAutomaton },
                 { Pages.ExampleAutomatonsMenu, ExampleAutomatonsMenu }
             };
             pagesDictionary[_page]();
+            Console.ReadKey();  
         }
-        // Consider moving validation of page to separate method to avoid code duplication
-        private void ExampleAutomatonsMenu()
-        {
-            if (_page != Pages.ExampleAutomatonsMenu)
-            {
-                Console.Clear();
-                _page = Pages.ExampleAutomatonsMenu;
-                _cursorPosition = 0;
-            }
-            PrintMenu(MenuPages.MenuItems[_page]);
-        }
-
-        private void LoadExampleAutomaton()
-        {
-            if (_page != Pages.LoadExampleAutomaton)
-            {
-                Console.Clear();
-                _page = Pages.LoadExampleAutomaton;
-                _cursorPosition = 0;
-            }
-            PrintMenu(MenuPages.MenuItems[_page]);
-        }
-
-        private void SaveAutomatonToFile()
-        {
-            // I don't want to add Exit neither to have error in case of no automaton loaded, so I'll have to use stack to remember previous pages. Consider.
-            if (_page != Pages.SaveAutomatonToFile)
-            {
-                Console.Clear();
-                _page = Pages.SaveAutomatonToFile;
-                _cursorPosition = 0;
-            }
-            Console.WriteLine("Enter the filename: ");
-            var filename = Console.ReadLine() ?? "filename.txt";
-            if (string.IsNullOrEmpty(filename))
-            {
-                Console.WriteLine("Filename cannot be empty.");
-                return;
-            }
-            try
-            {
-                _automaton?.SaveToFile(filename);
-                Console.WriteLine("Automaton successfully saved.");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("There was some problem during saving automaton.");
-                Console.WriteLine($"Exception: {e.Message}");
-            }
-        }
-
-        private void LoadAutomatonFromFile()
-        {
-            if (_page != Pages.LoadAutomatonFromFile)
-            {
-                Console.Clear();
-                _page = Pages.LoadAutomatonFromFile;
-                _cursorPosition = 0;
-            }
-            Console.WriteLine("Enter the filename: ");
-            var filename = Console.ReadLine() ?? string.Empty;
-            if (string.IsNullOrEmpty(filename))
-            {
-                Console.WriteLine("Filename cannot be empty.");
-                return;
-            }
-            try
-            {
-                _automaton = new NFA(filename);
-                Console.WriteLine("Automaton successfully loaded.");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Automaton couldn't be loaded.");
-                Console.WriteLine($"Exception: {e.Message}");
-            }
-        }
-
-        private void CheckWord()
-        {
-            if (_page != Pages.CheckWord)
-            {
-                Console.Clear();
-                _page = Pages.CheckWord;
-                _cursorPosition = 0;
-            }
-            if (_automaton is null)
-            {
-                Console.WriteLine("No automaton loaded.");
-                return;
-            }
-            Console.WriteLine("Enter the word to check: ");
-            var word = Console.ReadLine() ?? string.Empty;
-            if (string.IsNullOrEmpty(word))
-            {
-                Console.WriteLine("Word cannot be empty.");
-                return;
-            }
-            Console.WriteLine(_automaton.Accepts(word)
-                ? "Automaton accepts this word"
-                : "Automaton doesn't accept this word");
-        }
-
-        private string ChooseNFAtype()
-        {
-            if (_page != Pages.ChooseNFAtype)
-            {
-                Console.Clear();
-                _page = Pages.ChooseNFAtype;
-                _cursorPosition = 0;
-            }
-            var option = PrintMenu(MenuPages.MenuItems[_page]);
-            switch (option)
-            {
-                case 0:
-                    return "Epsilon NFA";
-                case 1:
-                    return "NFA";
-                default:
-                    return "Undefined";
-            }
-        }
-
-        private string ChooseAutomatonType()
-        {
-            if (_page != Pages.ChooseAutomatonType)
-            {
-                Console.Clear();
-                _page = Pages.ChooseAutomatonType;
-                _cursorPosition = 0;
-            }
-            var option = PrintMenu(MenuPages.MenuItems[_page]);
-            
-            switch (option)
-            {
-                case 0:
-                    return "DFA";
-                case 1: {
-                    return ChooseNFAtype();
-                }
-                default:
-                    Console.WriteLine("Invalid option. Please try again.");
-                    return "Undefined";
-            }
-            
-        }
-
-        private void MainMenu()
-        {
-            if (_page != Pages.MainMenu)
-            {
-                Console.Clear();
-                _page = Pages.MainMenu;
-                _cursorPosition = 0;
-            }
-            var option = PrintMenu(MenuPages.MenuItems[_page]);
-            switch (option)
-            {
-                case 0: 
-                    LoadAutomaton();
-                    break;
-                case 1:
-                    PrintAutomaton(_automaton);
-                    break;
-                case 2:
-                    CheckWord();
-                    break;
-                case 3:
-                    LoadAutomatonFromFile();
-                    break;
-                case 4:
-                    SaveAutomatonToFile();
-                    break;
-                case 5:
-                    LoadExampleAutomaton();
-                    break;
-                case 6:
-                    if (_automaton is NFA nfa)
-                        nfa.RemoveEpsilonTransitions();
-                    else
-                        Console.WriteLine("DFA automaton doesn't have epsilon transitions");
-                    break;
-                case 7:
-                    if (_automaton is NFA nfaAutomaton)
-                        _automaton = new DFA(nfaAutomaton);
-                    else
-                        Console.WriteLine("Automaton is not NFA.");
-                    break;
-                case 8:
-                    IsRunning = false;
-                    return;
-            }
-        }
-
         /// <summary>
         ///     Printing a menu with options
         /// </summary>
@@ -284,7 +94,7 @@ namespace FiniteStateAutomaton
                 }
             }
         }
-        
+        // Consider moving validation of page to separate method to avoid code duplication
         private int? HandleMenuInput(List<string> options)
         {   
             var key = Console.ReadKey();
@@ -303,13 +113,187 @@ namespace FiniteStateAutomaton
             }
         }
 
+        private void LoadPage(Pages page)
+        {
+            if (_page != page)
+            {
+                Console.Clear();
+                _previousPages.Push(_page);
+                _page = page;
+                _cursorPosition = 0;
+            }
+        }
+        
+        private void ExampleAutomatonsMenu()
+        {
+            LoadPage(Pages.ExampleAutomatonsMenu);
+            var option = PrintMenu(MenuPages.MenuItems[_page]);
+            switch (option)
+            {
+                case 0:
+                    _automaton = CreationWizard.Wizard.LoadExampleAutomaton("ZipCodeAutomaton.txt"); // Example DFA
+                    PrintAutomaton(_automaton);
+                    break;
+                case 1:
+                    _automaton = CreationWizard.Wizard.LoadExampleAutomaton("BinaryAutomaton.txt"); // Example NFA
+                    PrintAutomaton(_automaton);
+                    break;
+                case 2:
+                    _automaton = CreationWizard.Wizard.LoadExampleAutomaton("NumberParser.txt"); // Example NFA with epsilon transitions
+                    PrintAutomaton(_automaton);
+                    break;
+                default:
+                    MainMenu();
+                    break;
+            }
+        }
+
+        private void SaveAutomatonToFile()
+        {
+            // I don't want to add Exit neither to have error in case of no automaton loaded, so I'll have to use stack to remember previous pages. Consider.
+           LoadPage(Pages.SaveAutomatonToFile); 
+            Console.WriteLine("Enter the filename: ");
+            var filename = Console.ReadLine() ?? "filename.txt";
+            if (string.IsNullOrEmpty(filename))
+            {
+                Console.WriteLine("Filename cannot be empty.");
+                return;
+            }
+            try
+            {
+                _automaton?.SaveToFile(filename);
+                Console.WriteLine("Automaton successfully saved.");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("There was some problem during saving automaton.");
+                Console.WriteLine($"Exception: {e.Message}");
+            }
+        }
+
+        private void LoadAutomatonFromFile()
+        {
+            LoadPage(Pages.LoadAutomatonFromFile);
+            Console.WriteLine("Enter the filename: ");
+            var filename = Console.ReadLine() ?? string.Empty;
+            if (string.IsNullOrEmpty(filename))
+            {
+                Console.WriteLine("Filename cannot be empty.");
+                return;
+            }
+            try
+            {
+                _automaton = new NFA(filename);
+                Console.WriteLine("Automaton successfully loaded.");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Automaton couldn't be loaded.");
+                Console.WriteLine($"Exception: {e.Message}");
+            }
+        }
+
+        private void CheckWord()
+        {
+           LoadPage(Pages.CheckWord); 
+            if (_automaton is null)
+            {
+                Console.WriteLine("No automaton loaded.");
+                return;
+            }
+            Console.WriteLine("Enter the word to check: ");
+            var word = Console.ReadLine() ?? string.Empty;
+            if (string.IsNullOrEmpty(word))
+            {
+                Console.WriteLine("Word cannot be empty.");
+                return;
+            }
+            Console.WriteLine(_automaton.Accepts(word)
+                ? "Automaton accepts this word"
+                : "Automaton doesn't accept this word");
+        }
+
+        private string ChooseNFAtype()
+        {
+           LoadPage(Pages.ChooseNFAtype); 
+            var option = PrintMenu(MenuPages.MenuItems[_page]);
+            return option switch
+            {
+                0 => "Epsilon NFA",
+                1 => "NFA",
+                _ => "Undefined"
+            };
+        }
+
+        private string ChooseAutomatonType()
+        {
+            LoadPage(Pages.ChooseAutomatonType);
+            var option = PrintMenu(MenuPages.MenuItems[_page]);
+            
+            switch (option)
+            {
+                case 0:
+                    return "DFA";
+                case 1: {
+                    return ChooseNFAtype();
+                }
+                default:
+                    Console.WriteLine("Invalid option. Please try again.");
+                    return "Undefined";
+            }
+            
+        }
+
+        private void MainMenu()
+        {
+            LoadPage(Pages.MainMenu); 
+            var option = PrintMenu(MenuPages.MenuItems[_page]);
+            switch (option)
+            {
+                case 0: 
+                    LoadAutomaton();
+                    break;
+                case 1:
+                    PrintAutomaton(_automaton);
+                    break;
+                case 2:
+                    CheckWord();
+                    break;
+                case 3:
+                    LoadAutomatonFromFile();
+                    break;
+                case 4:
+                    SaveAutomatonToFile();
+                    break;
+                case 5:
+                    ExampleAutomatonsMenu();
+                    break;
+                case 6:
+                    if (_automaton is NFA nfa)
+                        nfa.RemoveEpsilonTransitions();
+                    else
+                        Console.WriteLine("DFA automaton doesn't have epsilon transitions");
+                    break;
+                case 7:
+                    if (_automaton is NFA nfaAutomaton)
+                        _automaton = new DFA(nfaAutomaton);
+                    else
+                        Console.WriteLine("Automaton is not NFA.");
+                    break;
+                case 8:
+                    IsRunning = false;
+                    return;
+            }
+            _page = Pages.MainMenu; 
+        }
+
+
         /// <summary>
         ///     Loading automaton from user input
         /// </summary>
         /// <returns>New automaton</returns>
         private void LoadAutomaton()
         {
-            // Ugly code, consider a factory pattern
             CreationWizard wizard = CreationWizard.Wizard;
             var type = ChooseAutomatonType();
             wizard.ChooseAutomatonType(type);
@@ -328,12 +312,14 @@ namespace FiniteStateAutomaton
 
         private void LoadTransitions()
         {
+            LoadPage(Pages.DefineTransitions);
             if (_automaton is null)
             {
                 Console.WriteLine("Automaton is not loaded.");
                 return;
             }
             Console.Clear();
+            List<Tuple<string,string,string>> transitions = new List<Tuple<string, string, string>>();
             foreach (var state in _automaton.States)
             foreach (var symbol in _automaton.Sigma)
             {
@@ -351,7 +337,6 @@ namespace FiniteStateAutomaton
                         Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
                         Console.WriteLine("Invalid number of transitions");
                         Console.ReadKey();
-                        LoadTransitions();
                     }
                 }
                 for (var i = 0; i < numberOfTransitions; i++)
@@ -368,10 +353,10 @@ namespace FiniteStateAutomaton
                         Console.ReadKey();
                         i--;
                     }
-
+                    
                     try
                     {
-                        _automaton.AddTransition(state, "q" + toState, symbol);
+                        transitions.Add(new Tuple<string, string, string>(state, symbol, toState));
                     }
                     catch (Exception e)
                     {
@@ -381,6 +366,7 @@ namespace FiniteStateAutomaton
                     Console.Clear();
                 }
             }
+            CreationWizard.Wizard.DefineTransitions(transitions);
         }
 
         /// <summary>
@@ -388,6 +374,7 @@ namespace FiniteStateAutomaton
         /// </summary>
         private void LoadInitialStates()
         {
+            LoadPage(Pages.DefineInitialState);
             if (_automaton is null)
             {
                 Console.Clear();
@@ -421,6 +408,7 @@ namespace FiniteStateAutomaton
         /// </summary>
         private void LoadFinalStates()
         {
+            LoadPage(Pages.DefineFinalStates);
             if (_automaton is null)
             {
                 Console.Clear();
@@ -461,6 +449,7 @@ namespace FiniteStateAutomaton
         /// </summary>
         private void LoadAlphabet()
         {
+            LoadPage(Pages.DefineAlphabet);
             if (_automaton is null)
             {
                 Console.WriteLine("Automaton is not loaded.");
@@ -498,6 +487,7 @@ namespace FiniteStateAutomaton
 
         private List<string> LoadStates()
         {
+            LoadPage(Pages.DefineStates);
             if (_automaton is null)
             {
                 Console.SetCursorPosition(Console.WindowWidth / 2, Console.WindowHeight / 2);
@@ -532,6 +522,7 @@ namespace FiniteStateAutomaton
         /// </summary>
         private void PrintAutomaton(Automaton? automaton)
         {
+            LoadPage(Pages.PrintAutomaton);
             if (automaton is null)
             {
                 Console.WriteLine("No automaton loaded.");

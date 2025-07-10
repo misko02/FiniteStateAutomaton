@@ -2,7 +2,7 @@ using FiniteStateAutomaton.Models;
 
 namespace FiniteStateAutomaton.Services;
 
-public class CreationWizard
+internal class CreationWizard
 {
     private CreationWizard() { }
     public static CreationWizard Wizard { get; } = new();
@@ -21,36 +21,108 @@ public class CreationWizard
         }
         throw new NotImplementedException();
     }
-    public void DefineStates(List<string> states)
+    internal void DefineStates(List<string> states)
     {
-        throw new NotImplementedException();
+        foreach (var state in states)
+        {
+            _currentAutomaton.States.Add(state);
+        }
     }
-    public void DefineAlphabet()
+    internal void DefineAlphabet(List<string> alphabet)
     {
-        throw new NotImplementedException();
+        foreach (var symbol in alphabet)
+        {
+            _currentAutomaton.Sigma.Add(symbol);
+        }
     }
-    public void DefineInitialState()
+    internal void DefineInitialState(string initialState)
     {
-        throw new NotImplementedException();
+        if (!_currentAutomaton.States.Contains(initialState))
+        {
+            throw new ArgumentException("Initial state must be one of the defined states.");
+        }
+        _currentAutomaton.MarkAsInitial(initialState);
     }
-    public void DefineFinalStates()
+    internal void DefineFinalStates(List<string> finalStates)
     {
-        throw new NotImplementedException();
+        foreach (var state in finalStates)
+        {
+            if (!_currentAutomaton.States.Contains(state))
+            {
+                throw new ArgumentException($"Final state '{state}' must be one of the defined states.");
+            }
+            _currentAutomaton.FinalStates.Add(state);
+        }
     }
-    public void DefineTransitions()
+    
+    internal void DefineTransitions(List<Tuple<string, string, string>> transitions)
     {
-        throw new NotImplementedException();
+        foreach (var transition in transitions)
+        {
+            var fromState = transition.Item1;
+            var toState = transition.Item2;
+            var symbol = transition.Item3;
+            try
+            {
+                _currentAutomaton.AddTransition(fromState, toState, symbol);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+        }
     }
-    public void SaveAutomatonToFile()
+    internal void SaveAutomatonToFile(string filepath, Automaton automaton)
     {
-        throw new NotImplementedException();
+        automaton.SaveToFile(filepath);
     }
-    public void LoadAutomatonFromFile()
+
+    internal Automaton LoadAutomatonFromFile(string filepath, string type)
     {
-        throw new NotImplementedException();
+        if (!File.Exists(filepath))
+        {
+            throw new FileNotFoundException("Automaton file not found.", filepath);
+        }
+
+        try
+        {
+            switch (type)
+            {
+                case "DFA":
+                    return new DFA(filepath);
+                case "Epsilon NFA":
+                    return new NFA(filepath) { Sigma = { "Epsilon" } };
+                case "NFA":
+                    return new NFA(filepath);
+                default:
+                    throw new ArgumentException("Invalid automaton type specified.");
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
     }
-    public void LoadExampleAutomaton()
+
+    internal Automaton LoadExampleAutomaton(string filename)
     {
-        throw new NotImplementedException();
+        switch(filename)
+        {
+            case "ZipCodeAutomaton.txt": return new DFA(filename);
+            case "BinaryAutomaton.txt": return new NFA(filename);
+            case "NumberParser.txt": return new NFA(filename);
+            default:
+                try
+                {
+                    return new NFA(filename);
+                }
+                catch (FileNotFoundException)
+                {
+                    Console.WriteLine("File not found: " + filename);
+                }
+                return null!;   //for sure to change
+        }
     }
 }
