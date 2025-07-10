@@ -14,6 +14,5 @@ public enum Pages
     CheckWord,
     LoadAutomatonFromFile,
     SaveAutomatonToFile,
-    LoadExampleAutomaton,
     ExampleAutomatonsMenu
 }
