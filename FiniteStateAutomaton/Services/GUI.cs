@@ -55,10 +55,10 @@ namespace FiniteStateAutomaton
                 { Pages.ChooseAutomatonType, () => ChooseAutomatonType()},
                 { Pages.ChooseNFAtype, () => ChooseNFAtype()},
                 { Pages.DefineStates, () => LoadStates() },
-                { Pages.DefineAlphabet, LoadAlphabet },
-                { Pages.DefineInitialState, LoadInitialStates },
-                { Pages.DefineFinalStates, LoadFinalStates },
-                { Pages.DefineTransitions, LoadTransitions },
+                { Pages.DefineAlphabet, () => LoadAlphabet() },
+                { Pages.DefineInitialState, () => LoadInitialStates() },
+                { Pages.DefineFinalStates, () => LoadFinalStates() },
+                { Pages.DefineTransitions, () => LoadTransitions() },
                 { Pages.PrintAutomaton, () => PrintAutomaton(_automaton) },
                 { Pages.CheckWord, CheckWord },
                 { Pages.LoadAutomatonFromFile, LoadAutomatonFromFile },
@@ -297,12 +297,16 @@ namespace FiniteStateAutomaton
             CreationWizard wizard = CreationWizard.Wizard;
             var type = ChooseAutomatonType();
             wizard.ChooseAutomatonType(type);
-            List<string> states = LoadStates();
+            var states = LoadStates();
             wizard.DefineStates(states);
-            LoadAlphabet();
-            LoadInitialStates();
-            LoadFinalStates();
-            LoadTransitions();
+            var alphabet = LoadAlphabet();
+            wizard.DefineAlphabet(alphabet);
+            var initialState = LoadInitialStates();
+            wizard.DefineInitialState(initialState);
+            var finalStates = LoadFinalStates();
+            wizard.DefineFinalStates(finalStates);
+            var transitions = LoadTransitions();
+            wizard.DefineTransitions(transitions);
             PrintAutomaton(_automaton);
         }
         
@@ -310,16 +314,16 @@ namespace FiniteStateAutomaton
         /// Method to load transitions from user input
         /// </summary>
 
-        private void LoadTransitions()
+        private List<Tuple<string,string,string>> LoadTransitions()
         {
             LoadPage(Pages.DefineTransitions);
             if (_automaton is null)
             {
                 Console.WriteLine("Automaton is not loaded.");
-                return;
+                return [];
             }
             Console.Clear();
-            List<Tuple<string,string,string>> transitions = new List<Tuple<string, string, string>>();
+            List<Tuple<string,string,string>> transitions = [];
             foreach (var state in _automaton.States)
             foreach (var symbol in _automaton.Sigma)
             {
@@ -356,7 +360,7 @@ namespace FiniteStateAutomaton
                     
                     try
                     {
-                        transitions.Add(new Tuple<string, string, string>(state, symbol, toState));
+                        transitions.Add(new Tuple<string, string, string>(state,symbol, toState));
                     }
                     catch (Exception e)
                     {
@@ -366,13 +370,13 @@ namespace FiniteStateAutomaton
                     Console.Clear();
                 }
             }
-            CreationWizard.Wizard.DefineTransitions(transitions);
+            return transitions;
         }
 
         /// <summary>
         /// Method to load the initial state from user input
         /// </summary>
-        private void LoadInitialStates()
+        private string LoadInitialStates()
         {
             LoadPage(Pages.DefineInitialState);
             if (_automaton is null)
@@ -380,7 +384,7 @@ namespace FiniteStateAutomaton
                 Console.Clear();
                 Console.SetCursorPosition(WidthCenter, HeightCenter);
                 Console.WriteLine("Automaton is not loaded.");
-                return;
+                return string.Empty;
             }
             Console.Clear();
             Console.SetCursorPosition(WidthCenter, HeightCenter);
@@ -400,13 +404,12 @@ namespace FiniteStateAutomaton
                 Console.ReadKey();
                 LoadInitialStates();
             }
-
-            _automaton.MarkAsInitial("q" + initialState);
+            return initialState ?? string.Empty; //I check it before but linter complains... To change later
         }
         /// <summary>
         /// Method to load final states from user input
         /// </summary>
-        private void LoadFinalStates()
+        private List<string> LoadFinalStates()
         {
             LoadPage(Pages.DefineFinalStates);
             if (_automaton is null)
@@ -414,7 +417,7 @@ namespace FiniteStateAutomaton
                 Console.Clear();
                 Console.SetCursorPosition(WidthCenter, HeightCenter+1);
                 Console.WriteLine("Automaton is not loaded.");
-                return;
+                return [];
             }
             Console.Clear();
             Console.SetCursorPosition(WidthCenter, HeightCenter);
@@ -426,6 +429,7 @@ namespace FiniteStateAutomaton
                 Console.ReadKey();
                 LoadFinalStates();
             }
+            var finalStates = new List<string>();
             for (var i = 0; i < numberOfFinalStates; i++)
             {
                 Console.SetCursorPosition(WidthCenter, HeightCenter);
@@ -438,23 +442,23 @@ namespace FiniteStateAutomaton
                     Console.ReadKey();
                     LoadFinalStates();
                 }
-
-                _automaton.MarkAsFinal("q" + state);
+                finalStates.Add(state);
                 Console.Clear();
             }
+            return finalStates;
         }
 
         /// <summary>
         /// Method to load alphabet from user input
         /// </summary>
-        private void LoadAlphabet()
+        private List<string> LoadAlphabet()
         {
             LoadPage(Pages.DefineAlphabet);
             if (_automaton is null)
             {
                 Console.WriteLine("Automaton is not loaded.");
                 Console.ReadKey();
-                return;
+                return [];
             }
             Console.Clear();
             Console.SetCursorPosition(WidthCenter, HeightCenter);
@@ -464,9 +468,9 @@ namespace FiniteStateAutomaton
                 Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
                 Console.WriteLine("Invalid number of symbols");
                 Console.ReadKey();
-                LoadAlphabet();
             }
             Console.Clear();
+            List<string> alphabet = [];
             for (var i = 0; i < numberOfSymbols; i++)
             {
                 Console.SetCursorPosition(WidthCenter, HeightCenter);
@@ -480,9 +484,10 @@ namespace FiniteStateAutomaton
                     i--;
                     continue;
                 }
-                _automaton.Sigma.Add(symbol);
+                alphabet.Add(symbol);
                 Console.Clear();
             }
+            return alphabet;
         }
 
         private List<string> LoadStates()
@@ -503,17 +508,19 @@ namespace FiniteStateAutomaton
                 Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
                 Console.WriteLine("Invalid number of states");
                 Console.ReadKey();
+                return [];
             }
+            List<string> states = [];
             for (var i = 0; i < numberOfStates; i++)
             {
                 Console.SetCursorPosition(WidthCenter, HeightCenter);
                 Console.Write($"Label of state number {i+1}: ");
                 var state = Console.ReadLine();
-                _automaton.AddState("q" + state);
+                states.Add("q" + state);
                 Console.Clear();
             }
 
-            return new List<string>(); // I'll implement this later, when I need to return states
+            return states;
         }
         
 
