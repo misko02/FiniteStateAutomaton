@@ -14,7 +14,7 @@ namespace FiniteStateAutomaton
         /// </summary>
         private Pages _page = Pages.MainMenu;
         /// <summary>
-        /// Stack of previous pages to allow going back in menu
+        /// Stack of previous pages
         /// </summary>
         private Stack<Pages> _previousPages = new();
         /// <summary>
@@ -58,8 +58,8 @@ namespace FiniteStateAutomaton
                 { Pages.DefineAlphabet, () => LoadAlphabet() },
                 { Pages.DefineInitialState, () => LoadInitialStates() },
                 { Pages.DefineFinalStates, () => LoadFinalStates() },
-                { Pages.DefineTransitions, () => LoadTransitions() },
-                { Pages.PrintAutomaton, () => PrintAutomaton(_automaton) },
+                { Pages.DefineTransitions, () => LoadTransitions("DFA", new List<string>(), new List<string>()) },
+                { Pages.PrintAutomaton, () => PrintAutomaton(new DFA())},
                 { Pages.CheckWord, CheckWord },
                 { Pages.LoadAutomatonFromFile, LoadAutomatonFromFile },
                 { Pages.SaveAutomatonToFile, SaveAutomatonToFile },
@@ -128,30 +128,45 @@ namespace FiniteStateAutomaton
         {
             LoadPage(Pages.ExampleAutomatonsMenu);
             var option = PrintMenu(MenuPages.MenuItems[_page]);
-            switch (option)
+            _automaton = option switch
             {
-                case 0:
-                    _automaton = CreationWizard.Wizard.LoadExampleAutomaton("ZipCodeAutomaton.txt"); // Example DFA
-                    PrintAutomaton(_automaton);
-                    break;
-                case 1:
-                    _automaton = CreationWizard.Wizard.LoadExampleAutomaton("BinaryAutomaton.txt"); // Example NFA
-                    PrintAutomaton(_automaton);
-                    break;
-                case 2:
-                    _automaton = CreationWizard.Wizard.LoadExampleAutomaton("NumberParser.txt"); // Example NFA with epsilon transitions
-                    PrintAutomaton(_automaton);
-                    break;
-                default:
-                    MainMenu();
-                    break;
+                0 => new DFA("ZipCodeAutomaton.txt"), // Example DFA
+                1 => new NFA("BinaryAutomaton.txt"), // Example NFA
+                2 => new NFA("NumberParser.txt"), // Example NFA with epsilon transitions
+                _ => _automaton
+            };
+            if (_automaton is null)
+            {
+                Console.WriteLine("No automaton loaded.");
+                return;
+            }
+
+            try 
+            {
+                PrintAutomaton(_automaton);
+            }
+            catch (ArgumentOutOfRangeException e)
+            {
+                Console.WriteLine($"Cannot print automaton: {e.Message}");
+                Console.WriteLine("Try to adjust the console window size.");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"An error occurred while printing the automaton: {e.Message}");
             }
         }
 
         private void SaveAutomatonToFile()
         {
             // I don't want to add Exit neither to have error in case of no automaton loaded, so I'll have to use stack to remember previous pages. Consider.
-           LoadPage(Pages.SaveAutomatonToFile); 
+            LoadPage(Pages.SaveAutomatonToFile); 
+            if (_automaton is null)
+            {
+                Console.Clear();
+                Console.SetCursorPosition(WidthCenter, HeightCenter);
+                Console.WriteLine("No automaton loaded.");
+                return;
+            }
             Console.WriteLine("Enter the filename: ");
             var filename = Console.ReadLine() ?? "filename.txt";
             if (string.IsNullOrEmpty(filename))
@@ -254,7 +269,14 @@ namespace FiniteStateAutomaton
                     LoadAutomaton();
                     break;
                 case 1:
-                    PrintAutomaton(_automaton);
+                    try
+                    {
+                        PrintAutomaton(_automaton);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Cannot print automaton: {e.Message}");
+                    }
                     break;
                 case 2:
                     CheckWord();
@@ -291,175 +313,72 @@ namespace FiniteStateAutomaton
         /// <summary>
         ///     Loading automaton from user input
         /// </summary>
-        /// <returns>New automaton</returns>
         private void LoadAutomaton()
         {
-            CreationWizard wizard = CreationWizard.Wizard;
-            var type = ChooseAutomatonType();
-            wizard.ChooseAutomatonType(type);
-            var states = LoadStates();
-            wizard.DefineStates(states);
-            var alphabet = LoadAlphabet();
-            wizard.DefineAlphabet(alphabet);
-            var initialState = LoadInitialStates();
-            wizard.DefineInitialState(initialState);
-            var finalStates = LoadFinalStates();
-            wizard.DefineFinalStates(finalStates);
-            var transitions = LoadTransitions();
-            wizard.DefineTransitions(transitions);
-            PrintAutomaton(_automaton);
+            try
+            {
+                CreationWizard wizard = CreationWizard.Wizard;
+                var type = ChooseAutomatonType();
+                wizard.ChooseAutomatonType(type);
+                var states = LoadStates();
+                wizard.DefineStates(states);
+                var alphabet = LoadAlphabet();
+                wizard.DefineAlphabet(alphabet);
+                var initialState = LoadInitialStates();
+                wizard.DefineInitialState(initialState);
+                var finalStates = LoadFinalStates();
+                wizard.DefineFinalStates(finalStates);
+                var transitions = LoadTransitions(type, states, alphabet);
+                wizard.DefineTransitions(transitions);
+                _automaton = wizard.CurrentAutomaton;
+                PrintAutomaton(_automaton);
+            }
+            catch (ArgumentOutOfRangeException e)
+            {
+                Console.WriteLine($"Cannot print automaton: {e.Message}");
+                Console.WriteLine("Try to adjust the console window size.");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"An error occurred while printing the automaton: {e.Message}");
+            }
         }
         
         /// <summary>
-        /// Method to load transitions from user input
+        /// Method to load states from user input
         /// </summary>
-
-        private List<Tuple<string,string,string>> LoadTransitions()
+        /// <returns>List of states labels declared by users</returns>
+        private List<string> LoadStates()
         {
-            LoadPage(Pages.DefineTransitions);
-            if (_automaton is null)
-            {
-                Console.WriteLine("Automaton is not loaded.");
-                return [];
-            }
-            Console.Clear();
-            List<Tuple<string,string,string>> transitions = [];
-            foreach (var state in _automaton.States)
-            foreach (var symbol in _automaton.Sigma)
-            {
-                Console.SetCursorPosition(WidthCenter, HeightCenter);
-                int numberOfTransitions;
-                if (_automaton is DFA)
-                {
-                    numberOfTransitions = 1;
-                }
-                else
-                {
-                    Console.Write($"Enter number of transitions of state {state} after symbol {symbol}: ");
-                    if (!int.TryParse(Console.ReadLine(), out numberOfTransitions))
-                    {
-                        Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
-                        Console.WriteLine("Invalid number of transitions");
-                        Console.ReadKey();
-                    }
-                }
-                for (var i = 0; i < numberOfTransitions; i++)
-                {
-                    Console.Clear();
-                    Console.SetCursorPosition(WidthCenter, HeightCenter);
-                    Console.Write(
-                        $"Enter {i + 1} destination states after transition from state {state} and symbol {symbol}: ");
-                    var toState = Console.ReadLine();
-                    if (!_automaton.States.Contains("q" + toState))
-                    {
-                        Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
-                        Console.WriteLine("Destination state doesn't exist in the set of states");
-                        Console.ReadKey();
-                        i--;
-                    }
-                    
-                    try
-                    {
-                        transitions.Add(new Tuple<string, string, string>(state,symbol, toState));
-                    }
-                    catch (Exception e)
-                    {
-                        Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
-                        Console.WriteLine($"Exception occurred: {e.Message}");
-                    }
-                    Console.Clear();
-                }
-            }
-            return transitions;
-        }
-
-        /// <summary>
-        /// Method to load the initial state from user input
-        /// </summary>
-        private string LoadInitialStates()
-        {
-            LoadPage(Pages.DefineInitialState);
-            if (_automaton is null)
-            {
-                Console.Clear();
-                Console.SetCursorPosition(WidthCenter, HeightCenter);
-                Console.WriteLine("Automaton is not loaded.");
-                return string.Empty;
-            }
+            LoadPage(Pages.DefineStates);
             Console.Clear();
             Console.SetCursorPosition(WidthCenter, HeightCenter);
-            Console.Write("Enter initial state label: ");
-            var initialState = Console.ReadLine();
-            if (string.IsNullOrEmpty(initialState))
+            Console.Write("Enter number of states: ");
+            if (!int.TryParse(Console.ReadLine(), out var numberOfStates) || numberOfStates < 0)
             {
                 Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
-                Console.WriteLine("Invalid initial state");
+                Console.WriteLine("Invalid number of states");
                 Console.ReadKey();
-                LoadInitialStates();
-            }
-            if (!_automaton.States.Contains("q" + initialState))
-            {
-                Console.SetCursorPosition(WidthCenter, HeightCenter+1);
-                Console.WriteLine("Initial state doesn't exist in the set of states");
-                Console.ReadKey();
-                LoadInitialStates();
-            }
-            return initialState ?? string.Empty; //I check it before but linter complains... To change later
-        }
-        /// <summary>
-        /// Method to load final states from user input
-        /// </summary>
-        private List<string> LoadFinalStates()
-        {
-            LoadPage(Pages.DefineFinalStates);
-            if (_automaton is null)
-            {
-                Console.Clear();
-                Console.SetCursorPosition(WidthCenter, HeightCenter+1);
-                Console.WriteLine("Automaton is not loaded.");
                 return [];
             }
-            Console.Clear();
-            Console.SetCursorPosition(WidthCenter, HeightCenter);
-            Console.Write("Enter number of final states: ");
-            if (!int.TryParse(Console.ReadLine(), out var numberOfFinalStates) || numberOfFinalStates <= 0)
-            {
-                Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
-                Console.WriteLine("Invalid number of final states");
-                Console.ReadKey();
-                LoadFinalStates();
-            }
-            var finalStates = new List<string>();
-            for (var i = 0; i < numberOfFinalStates; i++)
+            List<string> states = [];
+            for (var i = 0; i < numberOfStates; i++)
             {
                 Console.SetCursorPosition(WidthCenter, HeightCenter);
-                Console.Write($"Enter label of final state number {i + 1}: ");
+                Console.Write($"Label of state number {i+1}: ");
                 var state = Console.ReadLine();
-                if (!_automaton.States.Contains("q" + state))
-                {
-                    Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
-                    Console.WriteLine("Final state doesn't exist in the set of states");
-                    Console.ReadKey();
-                    LoadFinalStates();
-                }
-                finalStates.Add(state);
+                states.Add("q" + state);
                 Console.Clear();
             }
-            return finalStates;
+            return states;
         }
-
+        
         /// <summary>
         /// Method to load alphabet from user input
         /// </summary>
         private List<string> LoadAlphabet()
         {
             LoadPage(Pages.DefineAlphabet);
-            if (_automaton is null)
-            {
-                Console.WriteLine("Automaton is not loaded.");
-                Console.ReadKey();
-                return [];
-            }
             Console.Clear();
             Console.SetCursorPosition(WidthCenter, HeightCenter);
             Console.Write("Enter number of symbols of alphabet: ");
@@ -490,39 +409,139 @@ namespace FiniteStateAutomaton
             return alphabet;
         }
 
-        private List<string> LoadStates()
+        /// <summary>
+        /// Method to load the initial state from user input
+        /// </summary>
+        private string LoadInitialStates()
         {
-            LoadPage(Pages.DefineStates);
-            if (_automaton is null)
-            {
-                Console.SetCursorPosition(Console.WindowWidth / 2, Console.WindowHeight / 2);
-                Console.WriteLine("Automaton is not loaded.");
-                Console.ReadKey();
-                return new List<string>(); // I will implement this later, when I need to return states
-            }
+            LoadPage(Pages.DefineInitialState);
             Console.Clear();
             Console.SetCursorPosition(WidthCenter, HeightCenter);
-            Console.Write("Enter number of states: ");
-            if (!int.TryParse(Console.ReadLine(), out var numberOfStates) || numberOfStates < 0)
+            Console.Write("Enter initial state label: ");
+            var initialState = Console.ReadLine();
+            if (string.IsNullOrEmpty(initialState))
             {
                 Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
-                Console.WriteLine("Invalid number of states");
+                Console.WriteLine("Invalid initial state");
                 Console.ReadKey();
-                return [];
             }
-            List<string> states = [];
-            for (var i = 0; i < numberOfStates; i++)
+            return "q" + initialState; //I check it before but linter complains... To change later
+        }
+        /// <summary>
+        /// Method to load final states from user input
+        /// </summary>
+        private List<string> LoadFinalStates()
+        {
+            LoadPage(Pages.DefineFinalStates);
+            Console.Clear();
+            Console.SetCursorPosition(WidthCenter, HeightCenter);
+            Console.Write("Enter number of final states: ");
+            if (!int.TryParse(Console.ReadLine(), out var numberOfFinalStates) || numberOfFinalStates <= 0)
+            {
+                Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
+                Console.WriteLine("Invalid number of final states");
+                Console.ReadKey();
+                LoadFinalStates();
+            }
+            var finalStates = new List<string>();
+            for (var i = 0; i < numberOfFinalStates; i++)
             {
                 Console.SetCursorPosition(WidthCenter, HeightCenter);
-                Console.Write($"Label of state number {i+1}: ");
+                Console.Write($"Enter label of final state number {i + 1}: ");
                 var state = Console.ReadLine();
-                states.Add("q" + state);
+                if (string.IsNullOrEmpty(state))
+                {
+                    Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
+                    Console.WriteLine("Final state cannot be empty");
+                    Console.ReadKey();
+                    i--;
+                    continue;
+                }
+                finalStates.Add("q" + state);
                 Console.Clear();
             }
-
-            return states;
+            return finalStates;
         }
-        
+
+        /// <summary>
+        /// Method to load transitions from user input
+        /// </summary>
+
+        private List<Tuple<string,string,string>> LoadTransitions(string type, List<string> states, List<string> symbols)
+        {
+            LoadPage(Pages.DefineTransitions);
+            Console.Clear();
+            List<Tuple<string,string,string>> transitions = [];
+            if(string.IsNullOrEmpty(type) || type is not ("DFA" or "NFA" or "Epsilon NFA"))
+            {
+                Console.SetCursorPosition(WidthCenter, HeightCenter);
+                Console.WriteLine("Invalid automaton type. Please choose DFA, NFA or Epsilon NFA.");
+                Console.ReadKey();
+                return transitions;
+            }
+            if (states.Count == 0 || symbols.Count == 0)
+            {
+                Console.SetCursorPosition(WidthCenter, HeightCenter);
+                Console.WriteLine("States or symbols are not defined. Please define them first.");
+                Console.ReadKey();
+                return transitions;
+            }
+            foreach (var state in states)
+            foreach (var symbol in symbols)
+            {
+                Console.SetCursorPosition(WidthCenter, HeightCenter);
+                int numberOfTransitions;
+                if (type == "DFA")
+                {
+                    numberOfTransitions = 1;
+                }
+                else
+                {
+                    Console.Write($"Enter number of transitions of state {state} after symbol {symbol}: ");
+                    if (!int.TryParse(Console.ReadLine(), out numberOfTransitions))
+                    {
+                        Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
+                        Console.WriteLine("Invalid number of transitions");
+                        Console.ReadKey();
+                    }
+                }
+                for (var i = 0; i < numberOfTransitions; i++)
+                {
+                    Console.Clear();
+                    Console.SetCursorPosition(WidthCenter, HeightCenter);
+                    Console.Write(
+                        $"Enter {i + 1} destination states after transition from state {state} and symbol {symbol}: ");
+                    var toState = Console.ReadLine();
+                    if (string.IsNullOrEmpty(toState))
+                    {
+                        Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
+                        Console.WriteLine("Destination state cannot be empty");
+                        Console.ReadKey();
+                        i--;
+                        continue;
+                    }
+                    if (!states.Contains(toState))
+                    {
+                        Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
+                        Console.WriteLine("Destination state doesn't exist in the set of states");
+                        Console.ReadKey();
+                        i--;
+                    }
+                    
+                    try
+                    {
+                        transitions.Add(new Tuple<string, string, string>(state, symbol, toState));
+                    }
+                    catch (Exception e)
+                    {
+                        Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
+                        Console.WriteLine($"Exception occurred: {e.Message}");
+                    }
+                    Console.Clear();
+                }
+            }
+            return transitions;
+        }
 
         /// <summary>
         ///     Print automaton in tabular form

@@ -8,6 +8,38 @@ internal class CreationWizard
     public static CreationWizard Wizard { get; } = new();
     
     private Automaton _currentAutomaton = null!;
+    
+    public Automaton CurrentAutomaton
+    {
+        get
+        {   
+            if (_currentAutomaton == null)
+            {
+                throw new InvalidOperationException("No automaton type has been chosen.");
+            }
+            if (_currentAutomaton.States.Count == 0)
+            {
+                throw new InvalidOperationException("Automaton has no states defined.");
+            }
+            if (_currentAutomaton.Sigma.Count == 0)
+            {
+                throw new InvalidOperationException("Automaton has no alphabet defined.");
+            }
+            if (string.IsNullOrEmpty(_currentAutomaton.InitialState))
+            {
+                throw new InvalidOperationException("Automaton has no initial state defined.");
+            }
+            if (_currentAutomaton.FinalStates.Count == 0)
+            {
+                throw new InvalidOperationException("Automaton has no final states defined.");
+            }
+            if (_currentAutomaton.Delta.Count == 0)
+            {
+                throw new InvalidOperationException("Automaton has no transitions defined.");
+            }
+            return _currentAutomaton;
+        }
+    }
     public void ChooseAutomatonType(string type) 
     {
         switch (type)
@@ -19,10 +51,13 @@ internal class CreationWizard
                 Console.WriteLine("Invalid automaton type.");
                 return;
         }
-        throw new NotImplementedException();
     }
     internal void DefineStates(List<string> states)
     {
+        if (_currentAutomaton == null)
+        {
+            throw new InvalidOperationException("No automaton type has been chosen.");
+        }
         foreach (var state in states)
         {
             _currentAutomaton.States.Add(state);
