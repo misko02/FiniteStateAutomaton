@@ -14,10 +14,6 @@ namespace FiniteStateAutomaton
         /// </summary>
         private Pages _page = Pages.MainMenu;
         /// <summary>
-        /// Stack of previous pages
-        /// </summary>
-        private Stack<Pages> _previousPages = new();
-        /// <summary>
         ///     Cursor position in menu
         /// </summary>
         private int _cursorPosition;
@@ -118,7 +114,6 @@ namespace FiniteStateAutomaton
             if (_page != page)
             {
                 Console.Clear();
-                _previousPages.Push(_page);
                 _page = page;
                 _cursorPosition = 0;
             }
@@ -520,7 +515,7 @@ namespace FiniteStateAutomaton
                         i--;
                         continue;
                     }
-                    if (!states.Contains(toState))
+                    if (!states.Contains("q" + toState))
                     {
                         Console.SetCursorPosition(WidthCenter, HeightCenter + 1);
                         Console.WriteLine("Destination state doesn't exist in the set of states");
@@ -530,7 +525,7 @@ namespace FiniteStateAutomaton
                     
                     try
                     {
-                        transitions.Add(new Tuple<string, string, string>(state, symbol, toState));
+                        transitions.Add(new Tuple<string, string, string>(state, symbol, "q" + toState));
                     }
                     catch (Exception e)
                     {

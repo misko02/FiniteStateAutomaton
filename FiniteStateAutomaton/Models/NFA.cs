@@ -8,7 +8,7 @@ internal sealed class NFA : Automaton
     /// <summary>
     ///     Constant value representing epsilon transition
     /// </summary>
-    public const string Epsilon = "e";
+    private const string Epsilon = "e";
 
     /// <summary>
     ///     Default constructor

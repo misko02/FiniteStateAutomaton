@@ -95,8 +95,8 @@ internal class CreationWizard
         foreach (var transition in transitions)
         {
             var fromState = transition.Item1;
-            var toState = transition.Item2;
-            var symbol = transition.Item3;
+            var symbol = transition.Item2;
+            var toState = transition.Item3;
             try
             {
                 _currentAutomaton.AddTransition(fromState, toState, symbol);
