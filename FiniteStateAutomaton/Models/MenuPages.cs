@@ -2,7 +2,7 @@ using FiniteStateAutomaton.Enums;
 using static FiniteStateAutomaton.Enums.Pages;
 
 namespace FiniteStateAutomaton.Models;
-public record MenuPages
+internal record MenuPages
 {
     public static readonly Dictionary<Pages, List<string>> MenuItems = new()
     {

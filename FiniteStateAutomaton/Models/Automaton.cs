@@ -143,11 +143,11 @@ internal abstract class Automaton
     public void AddTransition(string from, string to, string symbol)
     {
         if (!States.Contains(from))
-            throw new ArgumentException("Initial state doesn't exist in set of automaton's states");
+            throw new ArgumentException($"Initial state {from} doesn't exist in set of automaton's states");
         if (!Sigma.Contains(symbol))
-            throw new ArgumentException("Symbol doesn't exist in automaton's alphabet");
+            throw new ArgumentException($"Symbol {symbol} doesn't exist in automaton's alphabet");
         if (!States.Contains(to))
-            throw new ArgumentException("Destination state doesn't exist in set of automaton's states");
+            throw new ArgumentException($"Destination state {to} doesn't exist in set of automaton's states");
         if (!Delta.ContainsKey((from, symbol)))
             Delta[(from, symbol)] = new HashSet<string>();
         
